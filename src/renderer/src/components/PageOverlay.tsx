@@ -9,7 +9,7 @@ interface PageOverlayProps {
   zoom: number
 }
 
-export function PageOverlay({
+function PageOverlayComponent({
   pageDimensions,
   scrollX,
   scrollY,
@@ -55,3 +55,5 @@ export function PageOverlay({
     </div>
   )
 }
+
+export const PageOverlay = React.memo(PageOverlayComponent)

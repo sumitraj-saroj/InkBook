@@ -4,6 +4,7 @@ import type { AppState } from '@excalidraw/excalidraw/types'
 import { ExcalidrawEditor } from './components/ExcalidrawEditor'
 import { NotebookTitle } from './components/NotebookTitle'
 import { Sidebar } from './components/Sidebar'
+import { BackgroundPicker } from './components/BackgroundPicker'
 import { useTheme } from './context/ThemeContext'
 import { ThemeProvider } from './context/ThemeProvider'
 import { useEditor } from './context/EditorContext'
@@ -100,6 +101,14 @@ function Workspace(): React.JSX.Element {
           <NotebookTitle />
         </div>
         <div className="app-actions">
+          <BackgroundPicker />
+          <button
+            className="action-btn"
+            onClick={handleFitToWindow}
+            title="Fit page to window (Ctrl+0)"
+          >
+            Fit page
+          </button>
           <button
             className="action-btn"
             onClick={handleOpen}
@@ -109,13 +118,6 @@ function Workspace(): React.JSX.Element {
           </button>
           <button className="action-btn" onClick={handleSave} title="Save drawing as .excalidraw">
             Save .excalidraw
-          </button>
-          <button
-            className="action-btn"
-            onClick={handleFitToWindow}
-            title="Fit page to window (Ctrl+0)"
-          >
-            Fit page
           </button>
           <button className="theme-toggle-btn" onClick={toggleTheme}>
             Theme: {theme === 'dark' ? 'Dark' : 'Light'}
