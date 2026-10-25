@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { setupApplicationMenu } from './menu'
+import { handleOpenExcalidraw, handleSaveExcalidraw } from './fileManager'
 
 function createWindow(): void {
   // Create the browser window.
@@ -63,6 +64,16 @@ app.whenReady().then(() => {
   }))
   ipcMain.handle('page:export', async (_event, _page, _format) => ({ success: true }))
   ipcMain.handle('notebook:recent', async () => [])
+
+  // Excalidraw open/save IPC handlers
+  ipcMain.handle('excalidraw:open', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    return handleOpenExcalidraw(win)
+  })
+  ipcMain.handle('excalidraw:save', async (event, content: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    return handleSaveExcalidraw(content, win)
+  })
 
   setupApplicationMenu()
   createWindow()
