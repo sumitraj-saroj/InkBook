@@ -27,6 +27,12 @@ import type { Notebook, UserSettings } from '../shared/types'
 
 const initialFileArgument = findInkBookArgument(process.argv)
 
+// Linux display server configuration (Wayland & X11 auto-detection)
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
+  app.commandLine.appendSwitch('enable-features', 'WaylandWindowDecorations')
+}
+
 const gotSingleInstanceLock = app.requestSingleInstanceLock()
 if (!gotSingleInstanceLock) {
   app.quit()
