@@ -86,6 +86,20 @@ export interface SaveFileResult {
   error?: string
 }
 
+export interface ExportFileOptions {
+  defaultName: string
+  filters: Array<{ name: string; extensions: string[] }>
+  data: string
+  isBase64?: boolean
+}
+
+export interface ExportFileResult {
+  canceled?: boolean
+  success: boolean
+  filePath?: string
+  error?: string
+}
+
 export interface InkBookAPI {
   openNotebook: (filePath?: string) => Promise<OpenNotebookResult>
   saveNotebook: (notebook: Notebook, filePath?: string) => Promise<SaveNotebookResult>
@@ -101,6 +115,7 @@ export interface InkBookAPI {
     page: Page,
     format: 'excalidraw' | 'png' | 'svg'
   ) => Promise<{ success: boolean; error?: string }>
+  exportFile: (options: ExportFileOptions) => Promise<ExportFileResult>
   getRecentFiles: () => Promise<string[]>
   clearRecentFiles: () => Promise<boolean>
   getInitialFile: () => Promise<string | null>

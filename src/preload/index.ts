@@ -62,6 +62,11 @@ const api: InkBookAPI = {
   ): Promise<{ success: boolean; error?: string }> => {
     return ipcRenderer.invoke('page:export', page, format)
   },
+  exportFile: async (
+    options: import('@shared/types').ExportFileOptions
+  ): Promise<import('@shared/types').ExportFileResult> => {
+    return ipcRenderer.invoke('page:export-file', options)
+  },
   getRecentFiles: async (): Promise<string[]> => {
     return ipcRenderer.invoke('notebook:recent')
   },

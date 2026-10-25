@@ -6,6 +6,7 @@ import { NotebookTitle } from './components/NotebookTitle'
 import { Sidebar } from './components/Sidebar'
 import { BackgroundPicker } from './components/BackgroundPicker'
 import { WelcomeScreen } from './components/WelcomeScreen'
+import { ExportDialog } from './components/ExportDialog'
 import { useTheme } from './context/ThemeContext'
 import { ThemeProvider } from './context/ThemeProvider'
 import { useEditor } from './context/EditorContext'
@@ -30,6 +31,7 @@ function Workspace(): React.JSX.Element {
   const markClean = useNotebookStore((s) => s.markClean)
 
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false)
+  const [isExportOpen, setIsExportOpen] = useState(false)
 
   const handleFitToWindow = useCallback((): void => {
     if (!excalidrawAPI) return
@@ -199,6 +201,9 @@ function Workspace(): React.JSX.Element {
         case 'clear-recent':
           window.api.clearRecentFiles().catch(console.error)
           break
+        case 'export-png':
+          setIsExportOpen(true)
+          break
         case 'save-notebook':
           handleSaveNotebook()
           break
@@ -321,6 +326,13 @@ function Workspace(): React.JSX.Element {
           <button className="action-btn" onClick={handleSave} title="Save drawing as .excalidraw">
             Save .excalidraw
           </button>
+          <button
+            className="action-btn"
+            onClick={(): void => setIsExportOpen(true)}
+            title="Export page or notebook"
+          >
+            Export
+          </button>
           <button className="theme-toggle-btn" onClick={toggleTheme}>
             Theme: {theme === 'dark' ? 'Dark' : 'Light'}
           </button>
@@ -347,6 +359,8 @@ function Workspace(): React.JSX.Element {
         onOpenNotebook={handleOpenNotebook}
         onOpenRecentPath={handleOpenRecentPath}
       />
+
+      <ExportDialog isOpen={isExportOpen} onClose={(): void => setIsExportOpen(false)} />
     </div>
   )
 }

@@ -101,6 +101,13 @@ export function setupApplicationMenu(): void {
         },
         { type: 'separator' },
         {
+          label: 'Export Page as PNG...',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'export-png')
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'Close Notebook',
           accelerator: 'CmdOrCtrl+W',
           click: (_item, win): void => {

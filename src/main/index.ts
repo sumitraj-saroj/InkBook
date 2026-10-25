@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
+import { promises as fs } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { setupApplicationMenu, updateMenuRecentNotebooks } from './menu'
@@ -219,6 +220,50 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('page:export', async (_event, _page, _format) => ({ success: true }))
+  ipcMain.handle(
+    'page:export-file',
+    async (
+      event,
+      {
+        defaultName,
+        filters,
+        data,
+        isBase64
+      }: {
+        defaultName: string
+        filters: Array<{ name: string; extensions: string[] }>
+        data: string
+        isBase64?: boolean
+      }
+    ) => {
+      const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+      const { canceled, filePath } = await dialog.showSaveDialog(win!, {
+        title: 'Export File',
+        defaultPath: defaultName,
+        filters
+      })
+
+      if (canceled || !filePath) {
+        return { canceled: true, success: false }
+      }
+
+      try {
+        if (isBase64) {
+          const base64Data = data.replace(/^data:[^;]+;base64,/, '')
+          const buffer = Buffer.from(base64Data, 'base64')
+          await fs.writeFile(filePath, buffer)
+        } else {
+          await fs.writeFile(filePath, data, 'utf-8')
+        }
+        return { success: true, filePath }
+      } catch (err) {
+        return {
+          success: false,
+          error: err instanceof Error ? err.message : String(err)
+        }
+      }
+    }
+  )
   ipcMain.handle('notebook:recent', async () => getRecentNotebooks())
   ipcMain.handle('app:initial-file', async () => initialFileArgument)
   ipcMain.handle('notebook:clear-recent', async () => {
