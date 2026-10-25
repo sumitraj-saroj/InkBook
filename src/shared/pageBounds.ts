@@ -24,6 +24,7 @@ export interface BoundedElement {
   startArrowhead?: string | null
   endArrowhead?: string | null
   strokeWidth?: number
+  fontSize?: number
   version?: number
   versionNonce?: number
   [key: string]: unknown

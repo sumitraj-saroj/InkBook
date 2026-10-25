@@ -15,6 +15,7 @@ import { useNotebookStore } from './store/notebookStore'
 import { calculatePageFit, getPageDimensions } from '@shared/index'
 import { useAutosave } from './hooks/useAutosave'
 import { useRecovery } from './hooks/useRecovery'
+import { importExcalidrawAsNewPage } from './utils/importUtils'
 
 function Workspace(): React.JSX.Element {
   useAutosave()
@@ -149,6 +150,30 @@ function Workspace(): React.JSX.Element {
     markClean()
   }, [currentNotebook, setFilePath, markClean])
 
+  const handleImportAsNewPage = useCallback(async (): Promise<void> => {
+    const res = await window.api.openExcalidrawFile()
+    if (res.canceled || !res.content) return
+
+    try {
+      const result = importExcalidrawAsNewPage(res.content, res.filePath)
+      if (excalidrawAPI) {
+        if (result.files && Object.keys(result.files).length > 0) {
+          excalidrawAPI.addFiles(Object.values(result.files))
+        }
+        excalidrawAPI.updateScene({
+          elements: result.elements as unknown as Parameters<
+            typeof excalidrawAPI.updateScene
+          >[0]['elements'],
+          captureUpdate: CaptureUpdateAction.IMMEDIATELY
+        })
+        handleFitToWindow()
+      }
+    } catch (err) {
+      console.error('Failed to import .excalidraw:', err)
+      alert(`Failed to import file: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }, [excalidrawAPI, handleFitToWindow])
+
   // Global shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -202,6 +227,9 @@ function Workspace(): React.JSX.Element {
         case 'clear-recent':
           window.api.clearRecentFiles().catch(console.error)
           break
+        case 'import-new-page':
+          handleImportAsNewPage().catch(console.error)
+          break
         case 'export-png':
           setExportFormat('png')
           setIsExportOpen(true)
@@ -237,7 +265,8 @@ function Workspace(): React.JSX.Element {
     handleOpenNotebook,
     handleOpenRecentPath,
     handleSaveNotebook,
-    handleSaveAsNotebook
+    handleSaveAsNotebook,
+    handleImportAsNewPage
   ])
 
   // Window title and dirty state synchronization
