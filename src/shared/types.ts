@@ -1,31 +1,56 @@
-export type PageBackground = 'blank' | 'ruled' | 'grid' | 'dotted'
+export type PagePreset = 'A4' | 'A5' | 'custom'
+export type PageOrientation = 'portrait' | 'landscape'
+export type PageBackground = 'ruled' | 'grid' | 'dots' | 'blank'
 
 export interface PageSize {
+  preset: PagePreset
   width: number
   height: number
-  name: string
+}
+
+export interface SafeAppState {
+  viewBackgroundColor?: string
+  currentItemStrokeColor?: string
+  currentItemBackgroundColor?: string
+  currentItemFillStyle?: string
+  currentItemStrokeWidth?: number
+  currentItemStrokeStyle?: string
+  currentItemRoughness?: number
+  currentItemOpacity?: number
+  currentItemFontFamily?: number
+  currentItemFontSize?: number
+  currentItemTextAlign?: string
+  currentItemStartArrowhead?: string | null
+  currentItemEndArrowhead?: string | null
+  scrollX?: number
+  scrollY?: number
+  zoom?: { value: number }
+  gridSize?: number | null
+  [key: string]: unknown
+}
+
+export interface PageScene {
+  elements: readonly unknown[]
+  appState: SafeAppState
+  files: Record<string, unknown>
 }
 
 export interface Page {
   id: string
   title: string
-  background: PageBackground
   size: PageSize
-  elements: readonly unknown[]
-  appState?: Record<string, unknown>
-  files?: Record<string, unknown>
+  orientation: PageOrientation
+  background: PageBackground
+  scene: PageScene
 }
 
-export interface NotebookMetadata {
+export interface Notebook {
+  format: 'inkbook'
+  version: number
   id: string
   name: string
   createdAt: string
   updatedAt: string
-}
-
-export interface Notebook {
-  version: string
-  metadata: NotebookMetadata
   pages: Page[]
 }
 

@@ -84,6 +84,48 @@ body,
   gap: 12px;
 }
 
+.notebook-title-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.notebook-title-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.notebook-title-btn:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+.notebook-title-input {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--accent);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 3px 7px;
+  border-radius: 4px;
+  outline: none;
+  min-width: 140px;
+}
+
+.dirty-indicator {
+  color: var(--accent);
+  font-weight: bold;
+}
+
 .notebook-badge {
   font-weight: 700;
   font-size: 14px;
@@ -174,11 +216,27 @@ body,
   justify-content: space-between;
   padding: 8px 12px;
   border-radius: 6px;
-  cursor: pointer;
+  cursor: grab;
   background-color: transparent;
   color: var(--text-secondary);
   border: 1px solid transparent;
   transition: all 0.15s ease;
+  user-select: none;
+}
+
+.page-item:active {
+  cursor: grabbing;
+}
+
+.page-item.dragging {
+  opacity: 0.35;
+  background-color: var(--bg-tertiary);
+  border: 1px dashed var(--accent);
+}
+
+.page-item.drag-over {
+  border-top: 2px solid var(--accent);
+  background-color: var(--bg-tertiary);
 }
 
 .page-item:hover {
@@ -191,6 +249,7 @@ body,
   color: var(--text-primary);
   border-color: var(--accent);
   font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .page-label {
@@ -198,11 +257,147 @@ body,
   align-items: center;
   gap: 8px;
   font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-number {
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 18px;
+}
+
+.page-item.active .page-number {
+  color: var(--accent);
+}
+
+.page-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Page Options & Context Menu */
+.page-menu-trigger {
+  opacity: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.page-item:hover .page-menu-trigger,
+.page-item.active .page-menu-trigger {
+  opacity: 1;
+}
+
+.page-menu-trigger:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.page-rename-input {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--accent);
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  outline: none;
+  width: 130px;
+}
+
+.page-context-menu {
+  position: fixed;
+  z-index: 1000;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 6px;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.context-menu-item {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  width: 100%;
+}
+
+.context-menu-item:hover:not(:disabled) {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.context-menu-item:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.context-menu-item.danger:hover:not(:disabled) {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 4px 0;
 }
 
 .page-index {
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.sidebar-actions {
+  padding: 8px 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-add-page-action {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--bg-tertiary);
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-add-page-action:hover {
+  background-color: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
+.btn-add-icon {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .sidebar-footer {
