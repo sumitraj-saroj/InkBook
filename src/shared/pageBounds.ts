@@ -341,17 +341,24 @@ export function clampElementToPage<T extends BoundedElement>(
 
   // 3. For unrotated shapes (rectangles, ellipses, diamonds, images, frames)
   if (!element.angle) {
-    let nextX = Math.max(0, Math.min(pageWidth, element.x))
-    let nextY = Math.max(0, Math.min(pageHeight, element.y))
-    let nextW = Math.max(1, Math.min(element.width, pageWidth - nextX))
-    let nextH = Math.max(1, Math.min(element.height, pageHeight - nextY))
+    const isNegW = element.width < 0
+    const isNegH = element.height < 0
+    const rawX = isNegW ? element.x + element.width : element.x
+    const rawY = isNegH ? element.y + element.height : element.y
+    const rawW = Math.abs(element.width)
+    const rawH = Math.abs(element.height)
 
-    if (element.x < 0) {
-      nextW = Math.max(1, element.width + element.x)
+    let nextX = Math.max(0, Math.min(pageWidth, rawX))
+    let nextY = Math.max(0, Math.min(pageHeight, rawY))
+    let nextW = Math.max(1, Math.min(rawW, pageWidth - nextX))
+    let nextH = Math.max(1, Math.min(rawH, pageHeight - nextY))
+
+    if (rawX < 0) {
+      nextW = Math.max(1, rawW + rawX)
       nextX = 0
     }
-    if (element.y < 0) {
-      nextH = Math.max(1, element.height + element.y)
+    if (rawY < 0) {
+      nextH = Math.max(1, rawH + rawY)
       nextY = 0
     }
 

@@ -399,6 +399,21 @@ describe('pageBounds', () => {
       expect(isInsidePage(getElementBounds(el), a4Page)).toBe(true)
     })
 
+    it('clamps elements drawn with negative width or height during reverse drag', () => {
+      const drawnNegative: BoundedElement = {
+        id: 'neg1',
+        type: 'rectangle',
+        x: 50,
+        y: 50,
+        width: -150, // 50 - 150 = -100 < 0
+        height: -100 // 50 - 100 = -50 < 0
+      }
+      const clamped = clampElementsToPage([drawnNegative], a4Page, [])
+      const el = clamped[0]!
+      const bounds = getElementBounds(el)
+      expect(isInsidePage(bounds, a4Page)).toBe(true)
+    })
+
     it('ignores deleted elements', () => {
       const deleted: BoundedElement = {
         id: '1',

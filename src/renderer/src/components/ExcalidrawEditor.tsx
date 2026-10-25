@@ -285,6 +285,19 @@ export function ExcalidrawEditor(): React.JSX.Element {
       className="editor-container"
       style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
     >
+      {/* Background sheet behind transparent canvas */}
+      <div
+        className="page-sheet-background"
+        style={{
+          position: 'absolute',
+          left: `${viewport.scrollX * viewport.zoom}px`,
+          top: `${viewport.scrollY * viewport.zoom}px`,
+          width: `${pageDims.width * viewport.zoom}px`,
+          height: `${pageDims.height * viewport.zoom}px`,
+          backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff',
+          pointerEvents: 'none'
+        }}
+      />
       <PageOverlay
         pageDimensions={pageDims}
         scrollX={viewport.scrollX}
