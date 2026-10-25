@@ -1,11 +1,21 @@
 import { useMemo, useEffect, useRef, useCallback } from 'react'
 import { Excalidraw, CaptureUpdateAction } from '@excalidraw/excalidraw'
-import type { ExcalidrawImperativeAPI, ExcalidrawProps } from '@excalidraw/excalidraw/types'
+import type {
+  ExcalidrawImperativeAPI,
+  ExcalidrawProps,
+  AppState
+} from '@excalidraw/excalidraw/types'
 import '@excalidraw/excalidraw/index.css'
 import { useTheme } from '../context/ThemeContext'
 import { useEditor } from '../context/EditorContext'
 import { useNotebookStore } from '../store/notebookStore'
-import { clampElementsToPage, getPageDimensions, type BoundedElement } from '@shared/index'
+import {
+  clampElementsToPage,
+  getPageDimensions,
+  calculatePageFit,
+  clampViewport,
+  type BoundedElement
+} from '@shared/index'
 
 export function ExcalidrawEditor(): React.JSX.Element {
   const { theme } = useTheme()
@@ -13,6 +23,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const updatePageScene = useNotebookStore((s) => s.updatePageScene)
 
+  const containerRef = useRef<HTMLDivElement>(null)
   const activePageIdRef = useRef<string>(currentPageId)
   const isSwitchingRef = useRef<boolean>(false)
   const isClampingRef = useRef<boolean>(false)
@@ -28,7 +39,36 @@ export function ExcalidrawEditor(): React.JSX.Element {
     []
   )
 
-  // Debounced scene change handler with page bounds enforcement and re-entry guard
+  // Fit page to window helper
+  const fitPageToViewport = useCallback((api: ExcalidrawImperativeAPI): void => {
+    const notebook = useNotebookStore.getState().currentNotebook
+    const page = notebook.pages.find((p) => p.id === activePageIdRef.current)
+    if (!page) return
+    const pageDims = getPageDimensions(page)
+    const vpW = containerRef.current?.clientWidth || 1000
+    const vpH = containerRef.current?.clientHeight || 800
+    const fit = calculatePageFit({
+      pageWidth: pageDims.width,
+      pageHeight: pageDims.height,
+      viewportWidth: vpW,
+      viewportHeight: vpH,
+      padding: 48
+    })
+    isClampingRef.current = true
+    api.updateScene({
+      appState: {
+        scrollX: fit.scrollX,
+        scrollY: fit.scrollY,
+        zoom: {
+          value: fit.zoom as unknown as NonNullable<AppState['zoom']>['value']
+        }
+      } as unknown as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['appState'],
+      captureUpdate: CaptureUpdateAction.NEVER
+    })
+    isClampingRef.current = false
+  }, [])
+
+  // Debounced scene change handler with page bounds enforcement and viewport restriction
   const handleSceneChange: NonNullable<ExcalidrawProps['onChange']> = useCallback(
     (elements, appState, files): void => {
       if (isSwitchingRef.current || isClampingRef.current) return
@@ -59,6 +99,45 @@ export function ExcalidrawEditor(): React.JSX.Element {
 
       lastValidElementsRef.current = activeElements as unknown as readonly BoundedElement[]
 
+      // Viewport restriction: restrict panning so page cannot scroll completely off screen
+      const vpW = containerRef.current?.clientWidth || 1000
+      const vpH = containerRef.current?.clientHeight || 800
+      const zoomVal = appState.zoom?.value ?? 1
+      const vp = clampViewport({
+        scrollX: appState.scrollX,
+        scrollY: appState.scrollY,
+        zoom: zoomVal,
+        pageWidth: pageDims.width,
+        pageHeight: pageDims.height,
+        viewportWidth: vpW,
+        viewportHeight: vpH
+      })
+
+      let finalAppState = appState
+      if (vp.clamped && excalidrawAPI) {
+        isClampingRef.current = true
+        excalidrawAPI.updateScene({
+          appState: {
+            scrollX: vp.scrollX,
+            scrollY: vp.scrollY,
+            zoom: {
+              value: vp.zoom as unknown as NonNullable<AppState['zoom']>['value']
+            }
+          } as unknown as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['appState'],
+          captureUpdate: CaptureUpdateAction.NEVER
+        })
+        isClampingRef.current = false
+        finalAppState = {
+          ...appState,
+          scrollX: vp.scrollX,
+          scrollY: vp.scrollY,
+          zoom: {
+            ...appState.zoom,
+            value: vp.zoom as unknown as NonNullable<AppState['zoom']>['value']
+          }
+        }
+      }
+
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
       }
@@ -66,7 +145,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
       debounceTimerRef.current = setTimeout(() => {
         updatePageScene(targetPageId, {
           elements: activeElements,
-          appState: appState as unknown as Record<string, unknown>,
+          appState: finalAppState as unknown as Record<string, unknown>,
           files: files as unknown as Record<string, unknown>
         })
         debounceTimerRef.current = null
@@ -121,13 +200,34 @@ export function ExcalidrawEditor(): React.JSX.Element {
           ExcalidrawImperativeAPI['updateScene']
         >[0]['elements']
 
+        const pageDims = getPageDimensions(targetPage)
+        const vpW = containerRef.current?.clientWidth || 1000
+        const vpH = containerRef.current?.clientHeight || 800
+        const fit = calculatePageFit({
+          pageWidth: pageDims.width,
+          pageHeight: pageDims.height,
+          viewportWidth: vpW,
+          viewportHeight: vpH,
+          padding: 48
+        })
+
+        const scrollX = targetPage.scene.appState.scrollX ?? fit.scrollX
+        const scrollY = targetPage.scene.appState.scrollY ?? fit.scrollY
+        const zoom =
+          targetPage.scene.appState.zoom?.value != null
+            ? targetPage.scene.appState.zoom
+            : { value: fit.zoom }
+
         excalidrawAPI.updateScene({
           elements: sceneElements ?? [],
           appState: {
             ...targetPage.scene.appState,
             viewBackgroundColor: 'transparent',
-            scrollX: targetPage.scene.appState.scrollX ?? 0,
-            scrollY: targetPage.scene.appState.scrollY ?? 0
+            scrollX,
+            scrollY,
+            zoom: {
+              value: (zoom?.value ?? fit.zoom) as unknown as NonNullable<AppState['zoom']>['value']
+            }
           } as unknown as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['appState'],
           captureUpdate: CaptureUpdateAction.NEVER
         })
@@ -145,6 +245,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
 
   return (
     <div
+      ref={containerRef}
       className="editor-container"
       style={{ width: '100%', height: '100%', position: 'relative' }}
     >
@@ -155,6 +256,10 @@ export function ExcalidrawEditor(): React.JSX.Element {
         excalidrawAPI={(api): void => {
           setExcalidrawAPI(api)
           api.history.clear()
+          // Automatically fit page on initial load
+          setTimeout(() => {
+            fitPageToViewport(api)
+          }, 50)
         }}
       />
     </div>

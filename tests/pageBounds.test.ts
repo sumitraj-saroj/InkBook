@@ -4,6 +4,8 @@ import {
   isInsidePage,
   clampElementsToPage,
   rotatePoint,
+  calculatePageFit,
+  clampViewport,
   PAGE_PRESETS,
   BoundedElement
 } from '../src/shared'
@@ -410,6 +412,44 @@ describe('pageBounds', () => {
       const clamped = clampElementsToPage([deleted], a4Page)
       const first = clamped[0]!
       expect(first.x).toBe(-500)
+    })
+  })
+
+  describe('viewport helpers', () => {
+    it('calculates page fit centered in viewport', () => {
+      const fit = calculatePageFit({
+        pageWidth: 794,
+        pageHeight: 1123,
+        viewportWidth: 1000,
+        viewportHeight: 800,
+        padding: 40
+      })
+      expect(fit.zoom).toBeGreaterThan(0)
+      expect(fit.zoom).toBeLessThanOrEqual(1.0)
+      // Screen X of page center should be exactly viewportWidth / 2 = 500
+      const centerScreenX = (794 / 2 + fit.scrollX) * fit.zoom
+      expect(centerScreenX).toBeCloseTo(500, 2)
+      // Screen Y of page center should be exactly viewportHeight / 2 = 400
+      const centerScreenY = (1123 / 2 + fit.scrollY) * fit.zoom
+      expect(centerScreenY).toBeCloseTo(400, 2)
+    })
+
+    it('clamps viewport when scrolled completely out of view', () => {
+      // Page is at [0, 0, 794, 1123]. Scrolled massively off screen to scrollX = -5000
+      const res = clampViewport({
+        scrollX: -5000,
+        scrollY: 0,
+        zoom: 1,
+        pageWidth: 794,
+        pageHeight: 1123,
+        viewportWidth: 1000,
+        viewportHeight: 800,
+        margin: 80
+      })
+      expect(res.clamped).toBe(true)
+      expect(res.scrollX).toBeGreaterThan(-5000)
+      // Bottom-right edge (794 + scrollX) * zoom must be >= 80
+      expect((794 + res.scrollX) * res.zoom).toBeGreaterThanOrEqual(79.9)
     })
   })
 })

@@ -590,3 +590,84 @@ export function clampElementsToPage<T extends BoundedElement>(
     return clampElementToPage(el, dims, prev)
   })
 }
+
+/**
+ * Calculates optimal scroll and zoom so the entire page fits in view and is centered.
+ */
+export function calculatePageFit({
+  pageWidth,
+  pageHeight,
+  viewportWidth,
+  viewportHeight,
+  padding = 40
+}: {
+  pageWidth: number
+  pageHeight: number
+  viewportWidth: number
+  viewportHeight: number
+  padding?: number
+}): { scrollX: number; scrollY: number; zoom: number } {
+  const availW = Math.max(50, viewportWidth - padding * 2)
+  const availH = Math.max(50, viewportHeight - padding * 2)
+  const fitZoom = Math.min(availW / pageWidth, availH / pageHeight)
+  const zoom = Math.max(0.1, Math.min(fitZoom, 3.0))
+
+  const scrollX = viewportWidth / (2 * zoom) - pageWidth / 2
+  const scrollY = viewportHeight / (2 * zoom) - pageHeight / 2
+
+  return { scrollX, scrollY, zoom }
+}
+
+/**
+ * Restricts viewport pan and zoom so the page cannot be scrolled completely out of view.
+ */
+export function clampViewport({
+  scrollX,
+  scrollY,
+  zoom,
+  pageWidth,
+  pageHeight,
+  viewportWidth,
+  viewportHeight,
+  margin = 80,
+  minZoom = 0.2,
+  maxZoom = 4.0
+}: {
+  scrollX: number
+  scrollY: number
+  zoom: number
+  pageWidth: number
+  pageHeight: number
+  viewportWidth: number
+  viewportHeight: number
+  margin?: number
+  minZoom?: number
+  maxZoom?: number
+}): { scrollX: number; scrollY: number; zoom: number; clamped: boolean } {
+  const clampedZoom = Math.max(minZoom, Math.min(maxZoom, zoom))
+  const zClamped = Math.abs(clampedZoom - zoom) > 0.001
+
+  const minScrollX = margin / clampedZoom - pageWidth
+  const maxScrollX = (viewportWidth - margin) / clampedZoom
+  const minScrollY = margin / clampedZoom - pageHeight
+  const maxScrollY = (viewportHeight - margin) / clampedZoom
+
+  let clampedScrollX = scrollX
+  let clampedScrollY = scrollY
+
+  if (scrollX < minScrollX) clampedScrollX = minScrollX
+  else if (scrollX > maxScrollX) clampedScrollX = maxScrollX
+
+  if (scrollY < minScrollY) clampedScrollY = minScrollY
+  else if (scrollY > maxScrollY) clampedScrollY = maxScrollY
+
+  const sClamped =
+    Math.abs(clampedScrollX - scrollX) > 0.5 || Math.abs(clampedScrollY - scrollY) > 0.5
+
+  return {
+    scrollX: clampedScrollX,
+    scrollY: clampedScrollY,
+    zoom: clampedZoom,
+    clamped: zClamped || sClamped
+  }
+}
