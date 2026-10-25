@@ -6,6 +6,7 @@ dist/
 out/
 release/
 build/
+.eslintcache
 
 # Logs
 *.log
