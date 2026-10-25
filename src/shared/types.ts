@@ -2,6 +2,11 @@ export type PagePreset = 'A4' | 'A5' | 'custom'
 export type PageOrientation = 'portrait' | 'landscape'
 export type PageBackground = 'ruled' | 'grid' | 'dots' | 'blank'
 
+export interface PageDimensions {
+  width: number
+  height: number
+}
+
 export interface PageSize {
   preset: PagePreset
   width: number

@@ -462,3 +462,16 @@ body,
   font-size: 12px;
   color: var(--accent);
 }
+
+/* Ensure Excalidraw UI tools, menus and popups stay above the boundary overlay */
+.excalidraw .layer-ui__wrapper {
+  z-index: 10 !important;
+}
+
+.page-overlay-container {
+  z-index: 3 !important;
+}
+
+.page-sheet-background {
+  z-index: 0 !important;
+}
