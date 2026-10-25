@@ -121,3 +121,38 @@ export function scaleAndCenterElements<T extends BoundedElement>(
     return cloned
   })
 }
+
+/**
+ * Regenerates element IDs to prevent ID collisions when merging elements into an existing page.
+ * Safely remaps containerId, frameId, and boundElements references.
+ */
+export function regenerateElementIds<T extends BoundedElement>(elements: readonly T[]): T[] {
+  const idMap = new Map<string, string>()
+
+  for (const el of elements) {
+    const newId = `imp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+    idMap.set(el.id, newId)
+  }
+
+  return elements.map((el) => {
+    const newId = idMap.get(el.id) ?? el.id
+    const cloned = { ...el, id: newId }
+
+    if (cloned.containerId && idMap.has(cloned.containerId)) {
+      cloned.containerId = idMap.get(cloned.containerId)
+    }
+
+    if (typeof cloned.frameId === 'string' && idMap.has(cloned.frameId)) {
+      cloned.frameId = idMap.get(cloned.frameId)
+    }
+
+    if (Array.isArray(cloned.boundElements)) {
+      cloned.boundElements = cloned.boundElements.map((b) => ({
+        ...b,
+        id: idMap.get(b.id) ?? b.id
+      }))
+    }
+
+    return cloned
+  })
+}

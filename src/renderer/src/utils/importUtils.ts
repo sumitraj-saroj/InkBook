@@ -3,6 +3,7 @@ import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 import {
   getPageDimensions,
   scaleAndCenterElements,
+  regenerateElementIds,
   type BoundedElement,
   type Page
 } from '@shared/index'
@@ -65,5 +66,50 @@ export function importExcalidrawAsNewPage(
     page: { ...newPage, title },
     elements: scaledElements,
     files: restored.files
+  }
+}
+
+/**
+ * Imports an .excalidraw drawing into the current active notebook page.
+ * Regenerates element IDs to prevent conflicts, scales content down uniformly if larger
+ * than page dimensions minus margins, centers it, and merges elements and files into the page.
+ */
+export function importExcalidrawIntoCurrentPage(
+  content: string,
+  currentPage: Page,
+  currentLiveElements?: readonly BoundedElement[],
+  currentLiveFiles?: BinaryFiles
+): {
+  mergedElements: readonly BoundedElement[]
+  newFiles: BinaryFiles
+} {
+  const restored = parseExcalidrawJson(content)
+  const dims = getPageDimensions(currentPage)
+
+  // Regenerate IDs for imported elements to prevent collision
+  const freshElements = regenerateElementIds(restored.elements)
+
+  // Scale down if larger than page with margin, and center
+  const scaledElements = scaleAndCenterElements(freshElements, dims.width, dims.height, 48)
+
+  const existingElements =
+    currentLiveElements ?? (currentPage.scene.elements as readonly BoundedElement[])
+  const existingFiles = currentLiveFiles ?? (currentPage.scene.files as BinaryFiles)
+
+  const mergedElements = [...existingElements, ...scaledElements]
+  const mergedFiles: BinaryFiles = {
+    ...existingFiles,
+    ...restored.files
+  }
+
+  const store = useNotebookStore.getState()
+  store.updatePageScene(currentPage.id, {
+    elements: mergedElements,
+    files: mergedFiles as Record<string, unknown>
+  })
+
+  return {
+    mergedElements,
+    newFiles: restored.files
   }
 }

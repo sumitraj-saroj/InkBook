@@ -106,6 +106,12 @@ export function setupApplicationMenu(): void {
             sendMenuAction(win as BrowserWindow | undefined, 'import-new-page')
           }
         },
+        {
+          label: 'Import .excalidraw into Current Page...',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'import-current-page')
+          }
+        },
         { type: 'separator' },
         {
           label: 'Export Page as PNG...',

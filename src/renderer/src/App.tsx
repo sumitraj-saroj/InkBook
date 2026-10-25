@@ -15,7 +15,9 @@ import { useNotebookStore } from './store/notebookStore'
 import { calculatePageFit, getPageDimensions } from '@shared/index'
 import { useAutosave } from './hooks/useAutosave'
 import { useRecovery } from './hooks/useRecovery'
-import { importExcalidrawAsNewPage } from './utils/importUtils'
+import { importExcalidrawAsNewPage, importExcalidrawIntoCurrentPage } from './utils/importUtils'
+import type { BoundedElement } from '@shared/pageBounds'
+import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 
 function Workspace(): React.JSX.Element {
   useAutosave()
@@ -174,6 +176,40 @@ function Workspace(): React.JSX.Element {
     }
   }, [excalidrawAPI, handleFitToWindow])
 
+  const handleImportIntoCurrentPage = useCallback(async (): Promise<void> => {
+    const page = currentNotebook.pages.find((p) => p.id === currentPageId)
+    if (!page) return
+
+    const res = await window.api.openExcalidrawFile()
+    if (res.canceled || !res.content) return
+
+    try {
+      const liveElements = excalidrawAPI
+        ? (excalidrawAPI.getSceneElements() as unknown as readonly BoundedElement[])
+        : undefined
+      const liveFiles = excalidrawAPI ? (excalidrawAPI.getFiles() as BinaryFiles) : undefined
+
+      const result = importExcalidrawIntoCurrentPage(res.content, page, liveElements, liveFiles)
+
+      if (excalidrawAPI) {
+        if (result.newFiles && Object.keys(result.newFiles).length > 0) {
+          excalidrawAPI.addFiles(Object.values(result.newFiles))
+        }
+        excalidrawAPI.updateScene({
+          elements: result.mergedElements as unknown as Parameters<
+            typeof excalidrawAPI.updateScene
+          >[0]['elements'],
+          captureUpdate: CaptureUpdateAction.IMMEDIATELY
+        })
+      }
+    } catch (err) {
+      console.error('Failed to import into current page:', err)
+      alert(
+        `Failed to import into current page: ${err instanceof Error ? err.message : String(err)}`
+      )
+    }
+  }, [currentNotebook.pages, currentPageId, excalidrawAPI])
+
   // Global shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -230,6 +266,9 @@ function Workspace(): React.JSX.Element {
         case 'import-new-page':
           handleImportAsNewPage().catch(console.error)
           break
+        case 'import-current-page':
+          handleImportIntoCurrentPage().catch(console.error)
+          break
         case 'export-png':
           setExportFormat('png')
           setIsExportOpen(true)
@@ -266,7 +305,8 @@ function Workspace(): React.JSX.Element {
     handleOpenRecentPath,
     handleSaveNotebook,
     handleSaveAsNotebook,
-    handleImportAsNewPage
+    handleImportAsNewPage,
+    handleImportIntoCurrentPage
   ])
 
   // Window title and dirty state synchronization

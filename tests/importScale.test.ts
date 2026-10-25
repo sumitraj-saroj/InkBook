@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { getElementsCombinedBounds, scaleAndCenterElements } from '../src/shared/importScale'
+import {
+  getElementsCombinedBounds,
+  scaleAndCenterElements,
+  regenerateElementIds
+} from '../src/shared/importScale'
 import type { BoundedElement } from '../src/shared/pageBounds'
 
 describe('importScale: getElementsCombinedBounds', () => {
@@ -116,5 +120,41 @@ describe('importScale: scaleAndCenterElements', () => {
     expect(lineEl.points![1]![0]).toBeLessThan(1600)
     expect(textEl.fontSize).toBeLessThan(32)
     expect(textEl.fontSize).toBeGreaterThanOrEqual(8)
+  })
+})
+
+describe('importScale: regenerateElementIds', () => {
+  it('generates new unique IDs and updates containerId and boundElements', () => {
+    const elements: BoundedElement[] = [
+      {
+        id: 'box1',
+        x: 10,
+        y: 10,
+        width: 100,
+        height: 100,
+        type: 'rectangle',
+        boundElements: [{ id: 'arrow1', type: 'arrow' }]
+      },
+      {
+        id: 'arrow1',
+        x: 110,
+        y: 60,
+        width: 100,
+        height: 10,
+        type: 'arrow',
+        containerId: 'box1'
+      }
+    ]
+
+    const remapped = regenerateElementIds(elements)
+    expect(remapped).toHaveLength(2)
+
+    const box = remapped.find((e) => e.type === 'rectangle')!
+    const arrow = remapped.find((e) => e.type === 'arrow')!
+
+    expect(box.id).not.toBe('box1')
+    expect(arrow.id).not.toBe('arrow1')
+    expect(arrow.containerId).toBe(box.id)
+    expect((box.boundElements as Array<{ id: string }>)[0]?.id).toBe(arrow.id)
   })
 })
