@@ -29,8 +29,37 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
   const [renameValue, setRenameValue] = useState<string>('')
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
-  const [viewMode, setViewMode] = useState<'list' | 'thumbnail'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'thumbnail'>(() => {
+    try {
+      const saved = localStorage.getItem('inkbook-sidebar-view-mode')
+      if (saved === 'thumbnail' || saved === 'list') return saved
+    } catch {
+      // ignore
+    }
+    return 'list'
+  })
   const renameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    window.api
+      ?.getSettings?.()
+      .then((settings) => {
+        if (settings?.sidebarViewMode) {
+          setViewMode(settings.sidebarViewMode)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const handleSetViewMode = useCallback((mode: 'list' | 'thumbnail'): void => {
+    setViewMode(mode)
+    try {
+      localStorage.setItem('inkbook-sidebar-view-mode', mode)
+    } catch {
+      // ignore
+    }
+    window.api?.saveSettings?.({ sidebarViewMode: mode }).catch(() => {})
+  }, [])
 
   const handleStartRename = useCallback(
     (pageId: string): void => {
@@ -106,7 +135,7 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
           <button
             type="button"
             className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={(): void => setViewMode('list')}
+            onClick={(): void => handleSetViewMode('list')}
             title="List view"
             aria-label="List view"
           >
@@ -117,7 +146,7 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
           <button
             type="button"
             className={`view-toggle-btn ${viewMode === 'thumbnail' ? 'active' : ''}`}
-            onClick={(): void => setViewMode('thumbnail')}
+            onClick={(): void => handleSetViewMode('thumbnail')}
             title="Thumbnail view"
             aria-label="Thumbnail view"
           >

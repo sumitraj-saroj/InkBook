@@ -101,6 +101,20 @@ export interface ExportFileResult {
   error?: string
 }
 
+export interface UserSettings {
+  recentNotebooks: string[]
+  theme: 'system' | 'dark' | 'light'
+  sidebarViewMode: 'list' | 'thumbnail'
+  autosaveInterval: number
+}
+
+export const DEFAULT_USER_SETTINGS: UserSettings = {
+  recentNotebooks: [],
+  theme: 'system',
+  sidebarViewMode: 'list',
+  autosaveInterval: 2000
+}
+
 export interface InkBookAPI {
   openNotebook: (filePath?: string) => Promise<OpenNotebookResult>
   saveNotebook: (notebook: Notebook, filePath?: string) => Promise<SaveNotebookResult>
@@ -123,4 +137,6 @@ export interface InkBookAPI {
   openExcalidrawFile: () => Promise<OpenFileResult>
   openExcalidrawLibraryFile: () => Promise<OpenFileResult>
   saveExcalidrawFile: (content: string) => Promise<SaveFileResult>
+  getSettings: () => Promise<UserSettings>
+  saveSettings: (partial: Partial<UserSettings>) => Promise<UserSettings>
 }

@@ -32,6 +32,18 @@ export function ThemeProvider({ children }: { children: ReactNode }): React.JSX.
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>(getInitialPreference)
   const [systemIsDark, setSystemIsDark] = useState<boolean>(getSystemIsDark)
 
+  // Hydrate theme setting from app config file
+  useEffect(() => {
+    window.api
+      ?.getSettings?.()
+      .then((settings) => {
+        if (settings?.theme) {
+          setThemePreferenceState(settings.theme)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // Listen to OS color scheme changes
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
@@ -65,6 +77,7 @@ export function ThemeProvider({ children }: { children: ReactNode }): React.JSX.
     } catch {
       // ignore
     }
+    window.api?.saveSettings?.({ theme: pref }).catch(() => {})
   }, [])
 
   const setTheme = useCallback(
@@ -82,6 +95,7 @@ export function ThemeProvider({ children }: { children: ReactNode }): React.JSX.
       } catch {
         // ignore
       }
+      window.api?.saveSettings?.({ theme: next }).catch(() => {})
       return next
     })
   }, [])

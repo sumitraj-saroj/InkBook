@@ -14,9 +14,15 @@ import {
   loadRecoveryCopy,
   clearRecoveryCopy
 } from './notebookService'
-import { getRecentNotebooks, addRecentNotebook, clearRecentNotebooks } from './settingsService'
+import {
+  getRecentNotebooks,
+  addRecentNotebook,
+  clearRecentNotebooks,
+  readSettings,
+  updateSettings
+} from './settingsService'
 import { findInkBookArgument } from './commandLine'
-import type { Notebook } from '../shared/types'
+import type { Notebook, UserSettings } from '../shared/types'
 
 const initialFileArgument = findInkBookArgument(process.argv)
 
@@ -270,6 +276,10 @@ app.whenReady().then(() => {
     await clearRecentNotebooks()
     updateMenuRecentNotebooks([])
     return true
+  })
+  ipcMain.handle('settings:get', async () => readSettings())
+  ipcMain.handle('settings:save', async (_, partial: Partial<UserSettings>) => {
+    return updateSettings(partial)
   })
 
   // Excalidraw open/save IPC handlers

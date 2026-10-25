@@ -2,10 +2,9 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { app } from 'electron'
+import { DEFAULT_USER_SETTINGS, type UserSettings } from '@shared/types'
 
-export interface UserSettings {
-  recentNotebooks: string[]
-}
+export type { UserSettings }
 
 const MAX_RECENT_NOTEBOOKS = 10
 
@@ -34,20 +33,51 @@ export async function readSettings(customUserDataDir?: string): Promise<UserSett
     return {
       recentNotebooks: Array.isArray(parsed.recentNotebooks)
         ? parsed.recentNotebooks.filter((item): item is string => typeof item === 'string')
-        : []
+        : [],
+      theme:
+        parsed.theme === 'dark' || parsed.theme === 'light' || parsed.theme === 'system'
+          ? parsed.theme
+          : DEFAULT_USER_SETTINGS.theme,
+      sidebarViewMode:
+        parsed.sidebarViewMode === 'thumbnail'
+          ? 'thumbnail'
+          : DEFAULT_USER_SETTINGS.sidebarViewMode,
+      autosaveInterval:
+        typeof parsed.autosaveInterval === 'number' && parsed.autosaveInterval >= 500
+          ? parsed.autosaveInterval
+          : DEFAULT_USER_SETTINGS.autosaveInterval
     }
   } catch {
-    return { recentNotebooks: [] }
+    return { ...DEFAULT_USER_SETTINGS }
   }
 }
 
 export async function writeSettings(
-  settings: UserSettings,
+  settings: Partial<UserSettings>,
   customUserDataDir?: string
 ): Promise<void> {
   const filePath = getSettingsFilePath(customUserDataDir)
-  const content = JSON.stringify(settings, null, 2)
+  const fullSettings: UserSettings = {
+    ...DEFAULT_USER_SETTINGS,
+    ...settings
+  }
+  const content = JSON.stringify(fullSettings, null, 2)
   await fs.writeFile(filePath, content, 'utf-8')
+}
+
+export async function updateSettings(
+  partial: Partial<UserSettings>,
+  customUserDataDir?: string
+): Promise<UserSettings> {
+  const current = await readSettings(customUserDataDir)
+  const updated: UserSettings = {
+    recentNotebooks: partial.recentNotebooks ?? current.recentNotebooks,
+    theme: partial.theme ?? current.theme,
+    sidebarViewMode: partial.sidebarViewMode ?? current.sidebarViewMode,
+    autosaveInterval: partial.autosaveInterval ?? current.autosaveInterval
+  }
+  await writeSettings(updated, customUserDataDir)
+  return updated
 }
 
 /**
@@ -68,7 +98,7 @@ export async function getRecentNotebooks(customUserDataDir?: string): Promise<st
 
   // If some missing files were pruned, update settings file
   if (validPaths.length !== settings.recentNotebooks.length) {
-    await writeSettings({ recentNotebooks: validPaths }, customUserDataDir)
+    await updateSettings({ recentNotebooks: validPaths }, customUserDataDir)
   }
 
   return validPaths.slice(0, MAX_RECENT_NOTEBOOKS)
@@ -85,7 +115,7 @@ export async function addRecentNotebook(
   const filtered = settings.recentNotebooks.filter((p) => p !== filePath)
   const updated = [filePath, ...filtered].slice(0, MAX_RECENT_NOTEBOOKS)
 
-  await writeSettings({ recentNotebooks: updated }, customUserDataDir)
+  await updateSettings({ recentNotebooks: updated }, customUserDataDir)
   return updated
 }
 
@@ -93,5 +123,5 @@ export async function addRecentNotebook(
  * Clears the recent notebooks list.
  */
 export async function clearRecentNotebooks(customUserDataDir?: string): Promise<void> {
-  await writeSettings({ recentNotebooks: [] }, customUserDataDir)
+  await updateSettings({ recentNotebooks: [] }, customUserDataDir)
 }

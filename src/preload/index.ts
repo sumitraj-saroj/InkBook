@@ -6,7 +6,8 @@ import type {
   OpenNotebookResult,
   Page,
   SaveFileResult,
-  SaveNotebookResult
+  SaveNotebookResult,
+  UserSettings
 } from '@shared/types'
 
 const api: InkBookAPI = {
@@ -84,6 +85,12 @@ const api: InkBookAPI = {
   },
   saveExcalidrawFile: async (content: string): Promise<SaveFileResult> => {
     return ipcRenderer.invoke('excalidraw:save', content)
+  },
+  getSettings: async (): Promise<UserSettings> => {
+    return ipcRenderer.invoke('settings:get')
+  },
+  saveSettings: async (partial: Partial<UserSettings>): Promise<UserSettings> => {
+    return ipcRenderer.invoke('settings:save', partial)
   }
 }
 
