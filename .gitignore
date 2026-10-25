@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build and distribution outputs
+dist/
+out/
+release/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Backup files
+*.inkbook.bak
+
+# Editor and IDE directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
