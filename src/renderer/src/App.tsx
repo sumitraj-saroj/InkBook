@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ExcalidrawEditor } from './components/ExcalidrawEditor'
 import { useTheme } from './context/ThemeContext'
 import { ThemeProvider } from './context/ThemeProvider'
+import { EditorProvider } from './context/EditorProvider'
 
 interface MockPage {
   id: string
@@ -89,7 +90,9 @@ function Workspace(): React.JSX.Element {
 function App(): React.JSX.Element {
   return (
     <ThemeProvider>
-      <Workspace />
+      <EditorProvider>
+        <Workspace />
+      </EditorProvider>
     </ThemeProvider>
   )
 }
