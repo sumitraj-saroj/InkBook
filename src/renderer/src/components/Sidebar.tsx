@@ -18,6 +18,7 @@ export function Sidebar(): React.JSX.Element {
   const [renameValue, setRenameValue] = useState<string>('')
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const [viewMode, setViewMode] = useState<'list' | 'thumbnail'>('list')
   const renameInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -75,9 +76,36 @@ export function Sidebar(): React.JSX.Element {
     <aside className="sidebar">
       <div className="sidebar-header">
         <span className="sidebar-title">Pages</span>
+        <div className="sidebar-view-toggle">
+          <button
+            type="button"
+            className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={(): void => setViewMode('list')}
+            title="List view"
+            aria-label="List view"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={`view-toggle-btn ${viewMode === 'thumbnail' ? 'active' : ''}`}
+            onClick={(): void => setViewMode('thumbnail')}
+            title="Thumbnail view"
+            aria-label="Thumbnail view"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <div className="page-list" role="list">
+      <div
+        className={`page-list ${viewMode === 'thumbnail' ? 'page-grid-view' : 'page-list-view'}`}
+        role="list"
+      >
         {pages.map((page, index) => {
           const isActive = page.id === currentPageId
           const isRenaming = page.id === renamingPageId
@@ -89,7 +117,7 @@ export function Sidebar(): React.JSX.Element {
               key={page.id}
               role="listitem"
               draggable={!isRenaming}
-              className={`page-item ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isDragOver ? 'drag-over' : ''}`}
+              className={`page-item ${viewMode === 'thumbnail' ? 'page-card-item' : ''} ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isDragOver ? 'drag-over' : ''}`}
               onClick={(): void => {
                 if (!isRenaming) {
                   setCurrentPage(page.id)
@@ -128,42 +156,86 @@ export function Sidebar(): React.JSX.Element {
                 setDragOverIndex(null)
               }}
             >
-              <div className="page-item-main">
-                <PageThumbnail page={page} className="sidebar-list-thumb" />
-                <div className="page-label">
-                  <span className="page-number">{index + 1}.</span>
-                  {isRenaming ? (
-                    <input
-                      ref={renameInputRef}
-                      type="text"
-                      className="page-rename-input"
-                      value={renameValue}
-                      onChange={(e): void => setRenameValue(e.target.value)}
-                      onBlur={(): void => handleCommitRename(page.id)}
-                      onKeyDown={(e): void => handleRenameKeyDown(e, page.id)}
-                      onClick={(e): void => e.stopPropagation()}
-                      maxLength={50}
-                    />
-                  ) : (
-                    <span
-                      className="page-title-text"
-                      onDoubleClick={(): void => handleStartRename(page.id)}
-                    >
-                      {page.title}
-                    </span>
-                  )}
-                </div>
-              </div>
+              {viewMode === 'thumbnail' ? (
+                <>
+                  <PageThumbnail page={page} className="sidebar-card-thumb" />
+                  <div className="page-card-footer">
+                    <div className="page-label">
+                      <span className="page-number">{index + 1}.</span>
+                      {isRenaming ? (
+                        <input
+                          ref={renameInputRef}
+                          type="text"
+                          className="page-rename-input"
+                          value={renameValue}
+                          onChange={(e): void => setRenameValue(e.target.value)}
+                          onBlur={(): void => handleCommitRename(page.id)}
+                          onKeyDown={(e): void => handleRenameKeyDown(e, page.id)}
+                          onClick={(e): void => e.stopPropagation()}
+                          maxLength={50}
+                        />
+                      ) : (
+                        <span
+                          className="page-title-text"
+                          onDoubleClick={(): void => handleStartRename(page.id)}
+                        >
+                          {page.title}
+                        </span>
+                      )}
+                    </div>
 
-              {!isRenaming && (
-                <button
-                  className="page-menu-trigger"
-                  title="Page options"
-                  aria-label="Page options"
-                  onClick={(e): void => handleOpenContextMenu(e, page.id, index)}
-                >
-                  •••
-                </button>
+                    {!isRenaming && (
+                      <button
+                        className="page-menu-trigger"
+                        title="Page options"
+                        aria-label="Page options"
+                        onClick={(e): void => handleOpenContextMenu(e, page.id, index)}
+                      >
+                        •••
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="page-item-main">
+                    <PageThumbnail page={page} className="sidebar-list-thumb" />
+                    <div className="page-label">
+                      <span className="page-number">{index + 1}.</span>
+                      {isRenaming ? (
+                        <input
+                          ref={renameInputRef}
+                          type="text"
+                          className="page-rename-input"
+                          value={renameValue}
+                          onChange={(e): void => setRenameValue(e.target.value)}
+                          onBlur={(): void => handleCommitRename(page.id)}
+                          onKeyDown={(e): void => handleRenameKeyDown(e, page.id)}
+                          onClick={(e): void => e.stopPropagation()}
+                          maxLength={50}
+                        />
+                      ) : (
+                        <span
+                          className="page-title-text"
+                          onDoubleClick={(): void => handleStartRename(page.id)}
+                        >
+                          {page.title}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {!isRenaming && (
+                    <button
+                      className="page-menu-trigger"
+                      title="Page options"
+                      aria-label="Page options"
+                      onClick={(e): void => handleOpenContextMenu(e, page.id, index)}
+                    >
+                      •••
+                    </button>
+                  )}
+                </>
               )}
             </div>
           )
@@ -184,8 +256,10 @@ export function Sidebar(): React.JSX.Element {
       </div>
 
       <div className="sidebar-footer">
-        <span>{pages.length} Pages</span>
-        <span>A4 Portrait</span>
+        <span>
+          {pages.length} {pages.length === 1 ? 'Page' : 'Pages'}
+        </span>
+        <span>{viewMode === 'list' ? 'List' : 'Thumbnails'}</span>
       </div>
 
       {contextMenu && (

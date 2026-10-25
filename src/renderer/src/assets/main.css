@@ -214,6 +214,39 @@ body,
   color: var(--text-secondary);
 }
 
+.sidebar-view-toggle {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.view-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.view-toggle-btn.active {
+  background-color: var(--accent);
+  color: #ffffff;
+}
+
 .btn-add-page {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
@@ -321,6 +354,46 @@ body,
 .sidebar-list-thumb {
   width: 26px;
   height: 36px;
+}
+
+.page-grid-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.page-card-item {
+  flex-direction: column !important;
+  align-items: center !important;
+  padding: 10px 8px !important;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  gap: 8px;
+}
+
+.page-card-item:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--accent);
+}
+
+.page-card-item.active {
+  background-color: var(--bg-tertiary);
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.sidebar-card-thumb {
+  width: 140px;
+  max-width: 100%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.page-card-footer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
 }
 
 .page-label {
