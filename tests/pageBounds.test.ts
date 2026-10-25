@@ -320,6 +320,41 @@ describe('pageBounds', () => {
       expect(el2.x - el1.x).toBe(100)
     })
 
+    it('shifts newly pasted or duplicated elements into page preserving relative positions', () => {
+      // User pastes 2 elements at cursor near bottom-right edge
+      const pasted: BoundedElement[] = [
+        { id: 'p1', type: 'rectangle', x: 750, y: 1100, width: 80, height: 50 },
+        { id: 'p2', type: 'rectangle', x: 800, y: 1120, width: 50, height: 40 }
+      ]
+      const clamped = clampElementsToPage(pasted, a4Page, [])
+      const p1 = clamped[0]!
+      const p2 = clamped[1]!
+      // p2 was up to x=850, y=1160. To fit inside 794x1123, group shifts left by (850 - 794) = 56, and up by (1160 - 1123) = 37
+      expect(isInsidePage(getElementBounds(p1), a4Page)).toBe(true)
+      expect(isInsidePage(getElementBounds(p2), a4Page)).toBe(true)
+      // Relative distance preserved:
+      expect(p2.x - p1.x).toBe(50)
+      expect(p2.y - p1.y).toBe(20)
+    })
+
+    it('scales down oversized images proportionally to fit page', () => {
+      const hugeImage: BoundedElement = {
+        id: 'img1',
+        type: 'image',
+        x: 100,
+        y: 100,
+        width: 1588, // 2x A4 width
+        height: 2246 // 2x A4 height
+      }
+      const clamped = clampElementsToPage([hugeImage], a4Page, [])
+      const img = clamped[0]!
+      expect(img.width).toBeLessThanOrEqual(794)
+      expect(img.height).toBeLessThanOrEqual(1123)
+      // Aspect ratio preserved (1588 / 2246 ~ 0.707)
+      expect(img.width / img.height).toBeCloseTo(1588 / 2246, 1)
+      expect(isInsidePage(getElementBounds(img), a4Page)).toBe(true)
+    })
+
     it('ignores deleted elements', () => {
       const deleted: BoundedElement = {
         id: '1',

@@ -284,6 +284,31 @@ export function clampElementToPage<T extends BoundedElement>(
     }
   }
 
+  // Proportional scaling for oversized image elements
+  if (element.type === 'image') {
+    const origW = element.width || 1
+    const origH = element.height || 1
+    if (origW > pageWidth || origH > pageHeight) {
+      const scale = Math.min(pageWidth / origW, pageHeight / origH)
+      const nextW = Math.max(1, Math.floor(origW * scale))
+      const nextH = Math.max(1, Math.floor(origH * scale))
+      const nextX = Math.max(0, Math.min(pageWidth - nextW, element.x))
+      const nextY = Math.max(0, Math.min(pageHeight - nextH, element.y))
+      const clampedImage: T = {
+        ...element,
+        x: nextX,
+        y: nextY,
+        width: nextW,
+        height: nextH,
+        version: (element.version ?? 0) + 1,
+        versionNonce: Math.floor(Math.random() * 2000000000)
+      }
+      if (isInsidePage(getElementBounds(clampedImage), dims)) {
+        return clampedImage
+      }
+    }
+  }
+
   // 3. For unrotated shapes (rectangles, ellipses, diamonds, images, frames)
   if (!element.angle) {
     let nextX = Math.max(0, Math.min(pageWidth, element.x))
@@ -461,6 +486,64 @@ export function clampElementsToPage<T extends BoundedElement>(
         })
 
         // Ensure all elements are inside after group shift
+        const allInside = shifted.every(
+          (el) => el.isDeleted || isInsidePage(getElementBounds(el), dims)
+        )
+        if (allInside) {
+          return shifted
+        }
+      }
+    }
+  }
+
+  // Handle newly added elements (paste / duplicate / image insertion)
+  const newElements = elements.filter((el) => !el.isDeleted && !prevMap.has(el.id))
+  if (newElements.length > 0) {
+    let newMinX = Infinity
+    let newMinY = Infinity
+    let newMaxX = -Infinity
+    let newMaxY = -Infinity
+
+    for (const el of newElements) {
+      const b = getElementBounds(el)
+      newMinX = Math.min(newMinX, b.minX)
+      newMinY = Math.min(newMinY, b.minY)
+      newMaxX = Math.max(newMaxX, b.maxX)
+      newMaxY = Math.max(newMaxY, b.maxY)
+    }
+
+    const newW = newMaxX - newMinX
+    const newH = newMaxY - newMinY
+
+    if (newW <= dims.width + 0.01 && newH <= dims.height + 0.01) {
+      let shiftX = 0
+      let shiftY = 0
+
+      if (newMinX < 0) {
+        shiftX = -newMinX
+      } else if (newMaxX > dims.width) {
+        shiftX = dims.width - newMaxX
+      }
+
+      if (newMinY < 0) {
+        shiftY = -newMinY
+      } else if (newMaxY > dims.height) {
+        shiftY = dims.height - newMaxY
+      }
+
+      if (shiftX !== 0 || shiftY !== 0) {
+        const newIdSet = new Set(newElements.map((el) => el.id))
+        const shifted = elements.map((el) => {
+          if (!newIdSet.has(el.id)) return el
+          return {
+            ...el,
+            x: el.x + shiftX,
+            y: el.y + shiftY,
+            version: (el.version ?? 0) + 1,
+            versionNonce: Math.floor(Math.random() * 2000000000)
+          }
+        })
+
         const allInside = shifted.every(
           (el) => el.isDeleted || isInsidePage(getElementBounds(el), dims)
         )
