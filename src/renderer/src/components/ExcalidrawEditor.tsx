@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef, useCallback } from 'react'
+import { useMemo, useEffect, useRef, useCallback, useState } from 'react'
 import { Excalidraw, CaptureUpdateAction } from '@excalidraw/excalidraw'
 import type {
   ExcalidrawImperativeAPI,
@@ -16,12 +16,17 @@ import {
   clampViewport,
   type BoundedElement
 } from '@shared/index'
+import { PageOverlay } from './PageOverlay'
 
 export function ExcalidrawEditor(): React.JSX.Element {
   const { theme } = useTheme()
   const { excalidrawAPI, setExcalidrawAPI } = useEditor()
+  const currentNotebook = useNotebookStore((s) => s.currentNotebook)
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const updatePageScene = useNotebookStore((s) => s.updatePageScene)
+
+  const activePage = currentNotebook.pages.find((p) => p.id === currentPageId)
+  const pageDims = activePage ? getPageDimensions(activePage) : { width: 794, height: 1123 }
 
   const containerRef = useRef<HTMLDivElement>(null)
   const activePageIdRef = useRef<string>(currentPageId)
@@ -29,6 +34,16 @@ export function ExcalidrawEditor(): React.JSX.Element {
   const isClampingRef = useRef<boolean>(false)
   const lastValidElementsRef = useRef<readonly BoundedElement[]>([])
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const [viewport, setViewport] = useState<{
+    scrollX: number
+    scrollY: number
+    zoom: number
+  }>({
+    scrollX: 0,
+    scrollY: 0,
+    zoom: 1
+  })
 
   const initialData = useMemo(
     () => ({
@@ -138,6 +153,22 @@ export function ExcalidrawEditor(): React.JSX.Element {
         }
       }
 
+      setViewport((prev) => {
+        const currentZoom = finalAppState.zoom?.value ?? 1
+        if (
+          Math.abs(prev.scrollX - finalAppState.scrollX) > 0.05 ||
+          Math.abs(prev.scrollY - finalAppState.scrollY) > 0.05 ||
+          Math.abs(prev.zoom - currentZoom) > 0.0005
+        ) {
+          return {
+            scrollX: finalAppState.scrollX,
+            scrollY: finalAppState.scrollY,
+            zoom: currentZoom
+          }
+        }
+        return prev
+      })
+
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
       }
@@ -235,6 +266,11 @@ export function ExcalidrawEditor(): React.JSX.Element {
         // Isolate undo/redo history so edits on previous pages cannot be undone on the new page
         excalidrawAPI.history.clear()
         lastValidElementsRef.current = (sceneElements as readonly BoundedElement[]) ?? []
+        setViewport({
+          scrollX,
+          scrollY,
+          zoom: zoom?.value ?? fit.zoom
+        })
       }
 
       isSwitchingRef.current = false
@@ -247,8 +283,14 @@ export function ExcalidrawEditor(): React.JSX.Element {
     <div
       ref={containerRef}
       className="editor-container"
-      style={{ width: '100%', height: '100%', position: 'relative' }}
+      style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
     >
+      <PageOverlay
+        pageDimensions={pageDims}
+        scrollX={viewport.scrollX}
+        scrollY={viewport.scrollY}
+        zoom={viewport.zoom}
+      />
       <Excalidraw
         theme={theme}
         initialData={initialData}
