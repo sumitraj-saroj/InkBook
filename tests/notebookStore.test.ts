@@ -121,4 +121,34 @@ describe('Notebook Zustand Store', () => {
     expect(state.currentNotebook.name).toBe('My New InkBook')
     expect(state.isDirty).toBe(true)
   })
+
+  it('handles filePath and markClean correctly', () => {
+    const store = useNotebookStore.getState()
+    expect(store.filePath).toBeNull()
+
+    store.setFilePath('/path/to/notes.inkbook')
+    expect(useNotebookStore.getState().filePath).toBe('/path/to/notes.inkbook')
+
+    store.renameNotebook('Dirty Notebook')
+    expect(useNotebookStore.getState().isDirty).toBe(true)
+
+    store.markClean()
+    expect(useNotebookStore.getState().isDirty).toBe(false)
+  })
+
+  it('updates notebook and filePath via setCurrentNotebook', () => {
+    const store = useNotebookStore.getState()
+    const customNotebook = {
+      ...store.currentNotebook,
+      id: 'custom-nb-1',
+      name: 'Custom Loaded Notebook'
+    }
+
+    store.setCurrentNotebook(customNotebook, '/custom/path/book.inkbook')
+    const state = useNotebookStore.getState()
+    expect(state.currentNotebook.id).toBe('custom-nb-1')
+    expect(state.currentNotebook.name).toBe('Custom Loaded Notebook')
+    expect(state.filePath).toBe('/custom/path/book.inkbook')
+    expect(state.isDirty).toBe(false)
+  })
 })

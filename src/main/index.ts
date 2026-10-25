@@ -1,9 +1,45 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { setupApplicationMenu } from './menu'
+import { setupApplicationMenu, updateMenuRecentNotebooks } from './menu'
 import { handleOpenExcalidraw, handleSaveExcalidraw } from './fileManager'
+import {
+  saveNotebookFile,
+  loadNotebookFile,
+  showOpenNotebookDialog,
+  showSaveNotebookDialog,
+  saveRecoveryCopy,
+  loadRecoveryCopy,
+  clearRecoveryCopy
+} from './notebookService'
+import { getRecentNotebooks, addRecentNotebook, clearRecentNotebooks } from './settingsService'
+import { findInkBookArgument } from './commandLine'
+import type { Notebook } from '../shared/types'
+
+const initialFileArgument = findInkBookArgument(process.argv)
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, commandLine) => {
+    if (mainWindowInstance) {
+      if (mainWindowInstance.isMinimized()) mainWindowInstance.restore()
+      mainWindowInstance.focus()
+
+      const fileToOpen = findInkBookArgument(commandLine)
+      if (fileToOpen) {
+        mainWindowInstance.webContents.send('menu:action', 'open-recent', fileToOpen)
+      }
+    }
+  })
+}
+
+let mainWindowInstance: BrowserWindow | null = null
+let isDirtyState = false
+let currentNotebookName = 'Untitled Notebook'
+let isForceClosing = false
 
 function createWindow(): void {
   // Create the browser window.
@@ -14,12 +50,41 @@ function createWindow(): void {
     minHeight: 600,
     backgroundColor: '#121212',
     show: false,
+    title: 'Untitled Notebook - InkBook',
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false
+    }
+  })
+
+  mainWindowInstance = mainWindow
+
+  mainWindow.on('close', async (e) => {
+    if (isForceClosing) {
+      return
+    }
+
+    if (isDirtyState) {
+      e.preventDefault()
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type: 'warning',
+        buttons: ['Save', "Don't Save", 'Cancel'],
+        defaultId: 0,
+        cancelId: 2,
+        title: 'Unsaved Changes',
+        message: `Do you want to save the changes you made to "${currentNotebookName}"?`,
+        detail: "Your changes will be lost if you don't save them."
+      })
+
+      if (response === 0) {
+        mainWindow.webContents.send('window:request-save-and-close')
+      } else if (response === 1) {
+        isForceClosing = true
+        mainWindow.close()
+      }
     }
   })
 
@@ -56,14 +121,111 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  // Placeholder IPC handlers for notebook operations
-  ipcMain.handle('notebook:open', async (_event, _filePath) => null)
-  ipcMain.handle('notebook:save', async (_event, _notebook, filePath) => ({
-    success: true,
-    filePath
-  }))
+  // IPC handlers for notebook operations
+  ipcMain.handle('notebook:open', async (event, filePath?: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    let targetPath = filePath
+    if (!targetPath) {
+      const selected = await showOpenNotebookDialog(win)
+      if (!selected) {
+        return { canceled: true, success: false }
+      }
+      targetPath = selected
+    }
+
+    const loaded = await loadNotebookFile(targetPath)
+    if (!loaded.success || !loaded.data) {
+      return { success: false, error: loaded.error, filePath: targetPath }
+    }
+
+    const updatedRecents = await addRecentNotebook(targetPath)
+    updateMenuRecentNotebooks(updatedRecents)
+    return { success: true, notebook: loaded.data, filePath: targetPath }
+  })
+
+  ipcMain.handle('notebook:save', async (event, notebook: Notebook, filePath?: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    let targetPath = filePath
+    if (!targetPath) {
+      const selected = await showSaveNotebookDialog(win, notebook.name)
+      if (!selected) {
+        return { canceled: true, success: false }
+      }
+      targetPath = selected
+    }
+
+    const saveResult = await saveNotebookFile(notebook, targetPath)
+    if (!saveResult.success) {
+      return { success: false, error: saveResult.error, filePath: targetPath }
+    }
+
+    const updatedRecents = await addRecentNotebook(targetPath)
+    updateMenuRecentNotebooks(updatedRecents)
+    return { success: true, filePath: targetPath }
+  })
+
+  ipcMain.handle('notebook:save-as', async (event, notebook: Notebook) => {
+    const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    const selected = await showSaveNotebookDialog(win, notebook.name)
+    if (!selected) {
+      return { canceled: true, success: false }
+    }
+
+    const saveResult = await saveNotebookFile(notebook, selected)
+    if (!saveResult.success) {
+      return { success: false, error: saveResult.error, filePath: selected }
+    }
+
+    const updatedRecents = await addRecentNotebook(selected)
+    updateMenuRecentNotebooks(updatedRecents)
+    return { success: true, filePath: selected }
+  })
+
+  // Crash recovery copy IPC handlers
+  ipcMain.handle('recovery:save', async (_event, notebook: Notebook) => {
+    return saveRecoveryCopy(notebook)
+  })
+
+  ipcMain.handle('recovery:load', async () => {
+    const res = await loadRecoveryCopy()
+    if (!res.success || !res.data) {
+      return null
+    }
+    return res.data
+  })
+
+  ipcMain.handle('recovery:clear', async () => {
+    await clearRecoveryCopy()
+    return true
+  })
+
+  // Window title dirty state and close handling
+  ipcMain.on('window:set-dirty', (_event, dirty: boolean, name?: string) => {
+    isDirtyState = dirty
+    if (name) {
+      currentNotebookName = name
+    }
+    if (mainWindowInstance && !mainWindowInstance.isDestroyed()) {
+      const title = `${dirty ? '• ' : ''}${currentNotebookName} - InkBook`
+      mainWindowInstance.setTitle(title)
+    }
+  })
+
+  ipcMain.on('window:save-and-close-completed', () => {
+    isForceClosing = true
+    if (mainWindowInstance && !mainWindowInstance.isDestroyed()) {
+      mainWindowInstance.close()
+    }
+  })
+
   ipcMain.handle('page:export', async (_event, _page, _format) => ({ success: true }))
-  ipcMain.handle('notebook:recent', async () => [])
+  ipcMain.handle('notebook:recent', async () => getRecentNotebooks())
+  ipcMain.handle('app:initial-file', async () => initialFileArgument)
+  ipcMain.handle('notebook:clear-recent', async () => {
+    await clearRecentNotebooks()
+    updateMenuRecentNotebooks([])
+    return true
+  })
 
   // Excalidraw open/save IPC handlers
   ipcMain.handle('excalidraw:open', async (event) => {
@@ -76,6 +238,9 @@ app.whenReady().then(() => {
   })
 
   setupApplicationMenu()
+  getRecentNotebooks()
+    .then((recents) => updateMenuRecentNotebooks(recents))
+    .catch(console.error)
   createWindow()
 
   app.on('activate', function () {

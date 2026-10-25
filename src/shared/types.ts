@@ -59,7 +59,16 @@ export interface Notebook {
   pages: Page[]
 }
 
+export interface OpenNotebookResult {
+  canceled?: boolean
+  success: boolean
+  notebook?: Notebook
+  filePath?: string
+  error?: string
+}
+
 export interface SaveNotebookResult {
+  canceled?: boolean
   success: boolean
   filePath?: string
   error?: string
@@ -78,13 +87,23 @@ export interface SaveFileResult {
 }
 
 export interface InkBookAPI {
-  openNotebook: (filePath?: string) => Promise<Notebook | null>
+  openNotebook: (filePath?: string) => Promise<OpenNotebookResult>
   saveNotebook: (notebook: Notebook, filePath?: string) => Promise<SaveNotebookResult>
+  saveNotebookAs: (notebook: Notebook) => Promise<SaveNotebookResult>
+  onMenuAction: (callback: (action: string, payload?: unknown) => void) => () => void
+  saveRecoveryCopy: (notebook: Notebook) => Promise<SaveNotebookResult>
+  checkRecoveryCopy: () => Promise<Notebook | null>
+  clearRecoveryCopy: () => Promise<boolean>
+  setDirtyState: (isDirty: boolean, notebookName: string) => void
+  onSaveAndCloseRequest: (callback: () => Promise<void>) => () => void
+  notifySaveAndCloseCompleted: () => void
   exportPage: (
     page: Page,
     format: 'excalidraw' | 'png' | 'svg'
   ) => Promise<{ success: boolean; error?: string }>
   getRecentFiles: () => Promise<string[]>
+  clearRecentFiles: () => Promise<boolean>
+  getInitialFile: () => Promise<string | null>
   openExcalidrawFile: () => Promise<OpenFileResult>
   saveExcalidrawFile: (content: string) => Promise<SaveFileResult>
 }
