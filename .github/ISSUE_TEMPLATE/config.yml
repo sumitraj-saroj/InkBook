@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerabilities
+    url: https://github.com/sumitraj-saroj/InkBook/security/policy
+    about: Please report security vulnerabilities privately according to our security policy.
+  - name: Architecture & Documentation
+    url: https://github.com/sumitraj-saroj/InkBook/blob/main/docs/TESTING.md
+    about: Review testing and distribution procedures.

@@ -1,0 +1,75 @@
+name: Bug Report
+description: Create a report to help us reproduce and fix a bug in InkBook
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please provide as much relevant information as possible.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the issue.
+      placeholder: |
+        1. Open InkBook
+        2. Create a new page with grid background
+        3. Draw a rectangle and export to PDF
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: What should have happened instead...
+    validations:
+      required: true
+  - type: dropdown
+    id: package_format
+    attributes:
+      label: Package Format
+      description: How are you running InkBook?
+      options:
+        - AppImage
+        - Pacman (.pacman package)
+        - AUR package
+        - Built from source (npm run dev / npm run build)
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: display_server
+    attributes:
+      label: Display Server / Window Manager
+      description: Which display server and compositor/WM are you using?
+      options:
+        - Wayland (Hyprland / Sway / GNOME / KDE)
+        - X11 (i3 / bspwm / XFCE / GNOME / KDE)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: os_version
+    attributes:
+      label: Operating System / Linux Distribution
+      description: e.g. Arch Linux rolling, Fedora 41, Ubuntu 24.04
+      placeholder: Arch Linux
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console Logs / Terminal Output
+      description: Paste any error messages or console logs from the terminal or developer tools.
+      render: shell
