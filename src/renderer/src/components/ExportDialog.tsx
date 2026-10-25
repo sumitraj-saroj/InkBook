@@ -5,6 +5,7 @@ import { useEditor } from '../context/EditorContext'
 import {
   exportPageToPngDataUrl,
   exportPageToSvgString,
+  exportPageToExcalidrawJson,
   type PngExportOptions,
   type SvgExportOptions
 } from '../utils/exportUtils'
@@ -66,6 +67,39 @@ export function ExportDialog({
           ],
           data: dataUrl,
           isBase64: true
+        })
+
+        if (result.canceled) {
+          setIsExporting(false)
+          return
+        }
+
+        if (!result.success) {
+          setError(result.error ?? 'Export failed')
+          setIsExporting(false)
+          return
+        }
+
+        onClose()
+      } else if (format === 'excalidraw') {
+        const liveScene = excalidrawAPI
+          ? {
+              elements: excalidrawAPI.getSceneElements(),
+              files: excalidrawAPI.getFiles() as Record<string, unknown>,
+              appState: excalidrawAPI.getAppState() as Record<string, unknown>
+            }
+          : undefined
+
+        const jsonString = exportPageToExcalidrawJson(activePage, liveScene)
+        const sanitizedTitle = activePage.title.replace(/[^a-zA-Z0-9_-]/g, '_')
+        const result = await window.api.exportFile({
+          defaultName: `${sanitizedTitle}.excalidraw`,
+          filters: [
+            { name: 'Excalidraw Files', extensions: ['excalidraw'] },
+            { name: 'All Files', extensions: ['*'] }
+          ],
+          data: jsonString,
+          isBase64: false
         })
 
         if (result.canceled) {
@@ -226,6 +260,24 @@ export function ExportDialog({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {format === 'excalidraw' && (
+            <div className="export-options-box">
+              <p
+                className="export-info-text"
+                style={{
+                  margin: 0,
+                  fontSize: '12px',
+                  lineHeight: 1.5,
+                  color: 'var(--text-secondary)'
+                }}
+              >
+                Exports a standard <code>.excalidraw</code> scene file containing only drawing
+                elements and images. Page background patterns are excluded so the file is 100%
+                compatible with <strong>excalidraw.com</strong>.
+              </p>
             </div>
           )}
         </div>

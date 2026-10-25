@@ -1,4 +1,4 @@
-import { exportToCanvas, exportToSvg } from '@excalidraw/excalidraw'
+import { exportToCanvas, exportToSvg, serializeAsJSON } from '@excalidraw/excalidraw'
 import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 import {
   getPageDimensions,
@@ -198,4 +198,34 @@ export async function exportPageToSvgString(
   }
 
   return svgString
+}
+
+/**
+ * Serializes the page's scene into a pure Excalidraw JSON file (no page background, compatible with excalidraw.com).
+ */
+export function exportPageToExcalidrawJson(
+  page: Page,
+  liveScene?: {
+    elements?: readonly unknown[]
+    files?: Record<string, unknown>
+    appState?: Record<string, unknown>
+  }
+): string {
+  const elements = (liveScene?.elements ?? page.scene.elements ?? []).filter(
+    (el) => !(el as Record<string, unknown>)['isDeleted']
+  )
+  const files = (liveScene?.files ?? page.scene.files ?? {}) as BinaryFiles
+  const appState = liveScene?.appState ?? page.scene.appState ?? {}
+
+  type SerializeAppState = Parameters<typeof serializeAsJSON>[1]
+
+  return serializeAsJSON(
+    elements as Parameters<typeof serializeAsJSON>[0],
+    {
+      ...appState,
+      viewBackgroundColor: '#ffffff'
+    } as SerializeAppState,
+    files,
+    'local'
+  )
 }

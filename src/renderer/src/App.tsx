@@ -207,6 +207,9 @@ function Workspace(): React.JSX.Element {
         case 'export-svg':
           setIsExportOpen(true)
           break
+        case 'export-excalidraw':
+          setIsExportOpen(true)
+          break
         case 'save-notebook':
           handleSaveNotebook()
           break

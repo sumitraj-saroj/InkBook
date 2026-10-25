@@ -112,6 +112,12 @@ export function setupApplicationMenu(): void {
             sendMenuAction(win as BrowserWindow | undefined, 'export-svg')
           }
         },
+        {
+          label: 'Export Page as .excalidraw...',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'export-excalidraw')
+          }
+        },
         { type: 'separator' },
         {
           label: 'Close Notebook',
