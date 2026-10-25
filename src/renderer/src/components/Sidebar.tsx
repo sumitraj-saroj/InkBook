@@ -15,6 +15,8 @@ export function Sidebar(): React.JSX.Element {
   const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null)
   const [renamingPageId, setRenamingPageId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState<string>('')
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const renameInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -78,18 +80,52 @@ export function Sidebar(): React.JSX.Element {
         {pages.map((page, index) => {
           const isActive = page.id === currentPageId
           const isRenaming = page.id === renamingPageId
+          const isDragging = draggedIndex === index
+          const isDragOver = dragOverIndex === index && draggedIndex !== index
 
           return (
             <div
               key={page.id}
               role="listitem"
-              className={`page-item ${isActive ? 'active' : ''}`}
+              draggable={!isRenaming}
+              className={`page-item ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isDragOver ? 'drag-over' : ''}`}
               onClick={(): void => {
                 if (!isRenaming) {
                   setCurrentPage(page.id)
                 }
               }}
               onContextMenu={(e): void => handleOpenContextMenu(e, page.id, index)}
+              onDragStart={(e): void => {
+                e.dataTransfer.setData('text/plain', String(index))
+                e.dataTransfer.effectAllowed = 'move'
+                setDraggedIndex(index)
+              }}
+              onDragOver={(e): void => {
+                e.preventDefault()
+                e.dataTransfer.dropEffect = 'move'
+                if (dragOverIndex !== index) {
+                  setDragOverIndex(index)
+                }
+              }}
+              onDragLeave={(): void => {
+                if (dragOverIndex === index) {
+                  setDragOverIndex(null)
+                }
+              }}
+              onDrop={(e): void => {
+                e.preventDefault()
+                const sourceIndexStr = e.dataTransfer.getData('text/plain')
+                const sourceIndex = parseInt(sourceIndexStr, 10)
+                if (!isNaN(sourceIndex) && sourceIndex !== index) {
+                  reorderPages(sourceIndex, index)
+                }
+                setDraggedIndex(null)
+                setDragOverIndex(null)
+              }}
+              onDragEnd={(): void => {
+                setDraggedIndex(null)
+                setDragOverIndex(null)
+              }}
             >
               <div className="page-label">
                 <span className="page-number">{index + 1}.</span>

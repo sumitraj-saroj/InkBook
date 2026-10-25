@@ -216,11 +216,27 @@ body,
   justify-content: space-between;
   padding: 8px 12px;
   border-radius: 6px;
-  cursor: pointer;
+  cursor: grab;
   background-color: transparent;
   color: var(--text-secondary);
   border: 1px solid transparent;
   transition: all 0.15s ease;
+  user-select: none;
+}
+
+.page-item:active {
+  cursor: grabbing;
+}
+
+.page-item.dragging {
+  opacity: 0.35;
+  background-color: var(--bg-tertiary);
+  border: 1px dashed var(--accent);
+}
+
+.page-item.drag-over {
+  border-top: 2px solid var(--accent);
+  background-color: var(--bg-tertiary);
 }
 
 .page-item:hover {
