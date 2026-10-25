@@ -294,6 +294,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
       <PageBackground
         pageDimensions={pageDims}
         background={activePage?.background ?? 'blank'}
+        showMarginLine={activePage?.showMarginLine ?? true}
         scrollX={viewport.scrollX}
         scrollY={viewport.scrollY}
         zoom={viewport.zoom}

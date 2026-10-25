@@ -164,12 +164,28 @@ export function setupApplicationMenu(): void {
         { role: 'cut' as const },
         { role: 'copy' as const },
         { role: 'paste' as const },
-        { role: 'selectAll' as const }
+        { role: 'selectAll' as const },
+        { type: 'separator' },
+        {
+          label: 'Find in Notebook...',
+          accelerator: 'CmdOrCtrl+F',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'search-notebook')
+          }
+        }
       ]
     },
     {
       label: '&View',
       submenu: [
+        {
+          label: 'Command Palette...',
+          accelerator: 'CmdOrCtrl+K',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'command-palette')
+          }
+        },
+        { type: 'separator' },
         { role: 'reload' as const },
         { role: 'forceReload' as const },
         { role: 'toggleDevTools' as const },
@@ -184,6 +200,14 @@ export function setupApplicationMenu(): void {
     {
       label: '&Help',
       submenu: [
+        {
+          label: 'Keyboard Shortcuts',
+          accelerator: 'F1',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'shortcuts-help')
+          }
+        },
+        { type: 'separator' },
         {
           label: 'Documentation',
           click: (): void => {

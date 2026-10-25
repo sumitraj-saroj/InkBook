@@ -26,6 +26,7 @@ export const PageSchema = z.object({
   size: PageSizeSchema,
   orientation: PageOrientationSchema,
   background: PageBackgroundSchema,
+  showMarginLine: z.boolean().optional(),
   scene: PageSceneSchema
 })
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { InkBookAPI } from '@shared/types'
 import { useNotebookStore } from '../store/notebookStore'
 
@@ -45,10 +45,31 @@ export function useAutosave(): void {
   const filePath = useNotebookStore((s) => s.filePath)
   const isDirty = useNotebookStore((s) => s.isDirty)
   const controllerRef = useRef<AutosaveController | null>(null)
+  const [delayMs, setDelayMs] = useState<number>(AUTOSAVE_DELAY_MS)
+
+  useEffect(() => {
+    const api =
+      typeof window !== 'undefined' ? (window as unknown as { api?: InkBookAPI }).api : undefined
+    api
+      ?.getSettings?.()
+      .then((settings) => {
+        if (typeof settings?.autosaveInterval === 'number' && settings.autosaveInterval >= 500) {
+          setDelayMs(settings.autosaveInterval)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    controllerRef.current = new AutosaveController(delayMs)
+    return (): void => {
+      controllerRef.current?.cancel()
+    }
+  }, [delayMs])
 
   useEffect(() => {
     if (!controllerRef.current) {
-      controllerRef.current = new AutosaveController(AUTOSAVE_DELAY_MS)
+      controllerRef.current = new AutosaveController(delayMs)
     }
     const controller = controllerRef.current
 
@@ -79,5 +100,5 @@ export function useAutosave(): void {
     return (): void => {
       controller.cancel()
     }
-  }, [currentNotebook, filePath, isDirty])
+  }, [currentNotebook, filePath, isDirty, delayMs])
 }

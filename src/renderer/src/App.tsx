@@ -7,12 +7,17 @@ import { Sidebar } from './components/Sidebar'
 import { BackgroundPicker } from './components/BackgroundPicker'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { ExportDialog } from './components/ExportDialog'
+import { CommandPalette } from './components/CommandPalette'
+import { ShortcutsHelpDialog } from './components/ShortcutsHelpDialog'
+import { PageSettingsDialog } from './components/PageSettingsDialog'
+import { SearchDialog } from './components/SearchDialog'
+import { PageFooter } from './components/PageFooter'
 import { useTheme } from './context/ThemeContext'
 import { ThemeProvider } from './context/ThemeProvider'
 import { useEditor } from './context/EditorContext'
 import { EditorProvider } from './context/EditorProvider'
 import { useNotebookStore } from './store/notebookStore'
-import { calculatePageFit, getPageDimensions } from '@shared/index'
+import { calculatePageFit, getPageDimensions, type SearchResult } from '@shared/index'
 import { useAutosave } from './hooks/useAutosave'
 import { useRecovery } from './hooks/useRecovery'
 import {
@@ -26,7 +31,7 @@ import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 function Workspace(): React.JSX.Element {
   useAutosave()
   useRecovery()
-  const { theme, toggleTheme } = useTheme()
+  const { theme, themePreference, toggleTheme } = useTheme()
   const { excalidrawAPI } = useEditor()
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const currentNotebook = useNotebookStore((s) => s.currentNotebook)
@@ -34,12 +39,18 @@ function Workspace(): React.JSX.Element {
   const isDirty = useNotebookStore((s) => s.isDirty)
   const newNotebook = useNotebookStore((s) => s.newNotebook)
   const setCurrentNotebook = useNotebookStore((s) => s.setCurrentNotebook)
+  const setCurrentPage = useNotebookStore((s) => s.setCurrentPage)
+  const addPage = useNotebookStore((s) => s.addPage)
   const setFilePath = useNotebookStore((s) => s.setFilePath)
   const markClean = useNotebookStore((s) => s.markClean)
 
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<'png' | 'svg' | 'excalidraw' | 'pdf'>('png')
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
+  const [isPageSettingsOpen, setIsPageSettingsOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   const handleFitToWindow = useCallback((): void => {
     if (!excalidrawAPI) return
@@ -70,6 +81,53 @@ function Workspace(): React.JSX.Element {
       captureUpdate: CaptureUpdateAction.NEVER
     })
   }, [excalidrawAPI, currentNotebook.pages, currentPageId])
+
+  const handleSelectSearchResult = useCallback(
+    (result: SearchResult): void => {
+      setCurrentPage(result.pageId)
+      if (result.type === 'page') {
+        setTimeout(() => {
+          handleFitToWindow()
+        }, 30)
+      } else if (result.type === 'text' && result.elementId) {
+        setTimeout(() => {
+          if (excalidrawAPI) {
+            excalidrawAPI.updateScene({
+              appState: {
+                selectedElementIds: { [result.elementId!]: true }
+              } as unknown as Parameters<typeof excalidrawAPI.updateScene>[0]['appState'],
+              captureUpdate: CaptureUpdateAction.NEVER
+            })
+            const elements = excalidrawAPI.getSceneElements()
+            const targetEl = elements.find((el) => el.id === result.elementId)
+            if (targetEl) {
+              excalidrawAPI.scrollToContent([targetEl], {
+                fitToViewport: false,
+                animate: true
+              })
+            }
+          }
+        }, 50)
+      }
+    },
+    [setCurrentPage, handleFitToWindow, excalidrawAPI]
+  )
+
+  const handleNextPage = useCallback((): void => {
+    const currentIndex = currentNotebook.pages.findIndex((p) => p.id === currentPageId)
+    if (currentIndex !== -1 && currentIndex < currentNotebook.pages.length - 1) {
+      const nextId = currentNotebook.pages[currentIndex + 1]!.id
+      setCurrentPage(nextId)
+    }
+  }, [currentNotebook.pages, currentPageId, setCurrentPage])
+
+  const handlePrevPage = useCallback((): void => {
+    const currentIndex = currentNotebook.pages.findIndex((p) => p.id === currentPageId)
+    if (currentIndex > 0) {
+      const prevId = currentNotebook.pages[currentIndex - 1]!.id
+      setCurrentPage(prevId)
+    }
+  }, [currentNotebook.pages, currentPageId, setCurrentPage])
 
   const handleNewNotebook = useCallback((): void => {
     if (isDirty) {
@@ -247,7 +305,29 @@ function Workspace(): React.JSX.Element {
         handleOpenNotebook()
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.code === 'KeyN')) {
         e.preventDefault()
-        handleNewNotebook()
+        if (e.shiftKey) {
+          addPage()
+        } else {
+          handleNewNotebook()
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'PageDown' || e.code === 'PageDown')) {
+        e.preventDefault()
+        handleNextPage()
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'PageUp' || e.code === 'PageUp')) {
+        e.preventDefault()
+        handlePrevPage()
+      } else if (e.key === 'F2') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('inkbook:rename-current-page'))
+      } else if (e.key === 'F1') {
+        e.preventDefault()
+        setIsShortcutsHelpOpen(true)
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault()
+        setIsCommandPaletteOpen((prev) => !prev)
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault()
+        setIsSearchOpen((prev) => !prev)
       }
     }
 
@@ -258,7 +338,10 @@ function Workspace(): React.JSX.Element {
     handleSaveNotebook,
     handleSaveAsNotebook,
     handleOpenNotebook,
-    handleNewNotebook
+    handleNewNotebook,
+    handleNextPage,
+    handlePrevPage,
+    addPage
   ])
 
   // Native Menu action listener
@@ -315,6 +398,15 @@ function Workspace(): React.JSX.Element {
           break
         case 'close-notebook':
           handleNewNotebook()
+          break
+        case 'command-palette':
+          setIsCommandPaletteOpen(true)
+          break
+        case 'shortcuts-help':
+          setIsShortcutsHelpOpen(true)
+          break
+        case 'search-notebook':
+          setIsSearchOpen(true)
           break
       }
     })
@@ -439,8 +531,24 @@ function Workspace(): React.JSX.Element {
           >
             Export
           </button>
-          <button className="theme-toggle-btn" onClick={toggleTheme}>
-            Theme: {theme === 'dark' ? 'Dark' : 'Light'}
+          <button
+            className="action-btn"
+            onClick={(): void => setIsSearchOpen(true)}
+            title="Search notebook pages and text (Ctrl+F)"
+          >
+            Search
+          </button>
+          <button
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            title={`Theme preference: ${themePreference === 'system' ? `System (${theme})` : themePreference} (Click to cycle)`}
+          >
+            Theme:{' '}
+            {themePreference === 'system'
+              ? `System (${theme === 'dark' ? 'Dark' : 'Light'})`
+              : theme === 'dark'
+                ? 'Dark'
+                : 'Light'}
           </button>
         </div>
       </header>
@@ -448,13 +556,20 @@ function Workspace(): React.JSX.Element {
       {/* Main workspace with 2-panel layout */}
       <div className="workspace-body">
         {/* Left Sidebar */}
-        <Sidebar />
+        <Sidebar onOpenPageSettings={(): void => setIsPageSettingsOpen(true)} />
 
         {/* Main Content Area */}
         <main className="canvas-area">
           <div className="editor-wrapper">
             <ExcalidrawEditor />
           </div>
+          <PageFooter
+            onPrevPage={handlePrevPage}
+            onNextPage={handleNextPage}
+            onAddPage={addPage}
+            onFitPage={handleFitToWindow}
+            onOpenSettings={(): void => setIsPageSettingsOpen(true)}
+          />
         </main>
       </div>
 
@@ -471,6 +586,49 @@ function Workspace(): React.JSX.Element {
         isOpen={isExportOpen}
         initialFormat={exportFormat}
         onClose={(): void => setIsExportOpen(false)}
+      />
+
+      <CommandPalette
+        key={String(isCommandPaletteOpen)}
+        isOpen={isCommandPaletteOpen}
+        onClose={(): void => setIsCommandPaletteOpen(false)}
+        onFitPage={handleFitToWindow}
+        onSaveNotebook={handleSaveNotebook}
+        onSaveAsNotebook={handleSaveAsNotebook}
+        onOpenNotebook={handleOpenNotebook}
+        onNewNotebook={handleNewNotebook}
+        onOpenExport={(format?: 'png' | 'svg' | 'excalidraw' | 'pdf'): void => {
+          if (format) setExportFormat(format)
+          setIsExportOpen(true)
+        }}
+        onOpenPageSettings={(): void => {
+          setIsPageSettingsOpen(true)
+        }}
+        onOpenShortcutsHelp={(): void => {
+          setIsShortcutsHelpOpen(true)
+        }}
+        onOpenSearch={(): void => {
+          setIsSearchOpen(true)
+        }}
+      />
+
+      <SearchDialog
+        key={String(isSearchOpen)}
+        isOpen={isSearchOpen}
+        onClose={(): void => setIsSearchOpen(false)}
+        onSelectResult={handleSelectSearchResult}
+      />
+
+      <PageSettingsDialog
+        key={String(isPageSettingsOpen)}
+        isOpen={isPageSettingsOpen}
+        onClose={(): void => setIsPageSettingsOpen(false)}
+        onFitPage={handleFitToWindow}
+      />
+
+      <ShortcutsHelpDialog
+        isOpen={isShortcutsHelpOpen}
+        onClose={(): void => setIsShortcutsHelpOpen(false)}
       />
     </div>
   )

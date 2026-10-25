@@ -1,9 +1,20 @@
-import { useState, useRef, useEffect, type MouseEvent, type KeyboardEvent } from 'react'
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type MouseEvent,
+  type KeyboardEvent
+} from 'react'
 import { useNotebookStore } from '../store/notebookStore'
 import { PageContextMenu, type ContextMenuPosition } from './PageContextMenu'
 import { PageThumbnail } from './PageThumbnail'
 
-export function Sidebar(): React.JSX.Element {
+export interface SidebarProps {
+  onOpenPageSettings?: () => void
+}
+
+export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element {
   const pages = useNotebookStore((s) => s.currentNotebook.pages)
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const setCurrentPage = useNotebookStore((s) => s.setCurrentPage)
@@ -18,8 +29,48 @@ export function Sidebar(): React.JSX.Element {
   const [renameValue, setRenameValue] = useState<string>('')
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
-  const [viewMode, setViewMode] = useState<'list' | 'thumbnail'>('list')
+  const pageListRef = useRef<HTMLDivElement>(null)
+  const [viewMode, setViewMode] = useState<'list' | 'thumbnail'>(() => {
+    try {
+      const saved = localStorage.getItem('inkbook-sidebar-view-mode')
+      if (saved === 'thumbnail' || saved === 'list') return saved
+    } catch {
+      // ignore
+    }
+    return 'list'
+  })
   const renameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    window.api
+      ?.getSettings?.()
+      .then((settings) => {
+        if (settings?.sidebarViewMode) {
+          setViewMode(settings.sidebarViewMode)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const handleSetViewMode = useCallback((mode: 'list' | 'thumbnail'): void => {
+    setViewMode(mode)
+    try {
+      localStorage.setItem('inkbook-sidebar-view-mode', mode)
+    } catch {
+      // ignore
+    }
+    window.api?.saveSettings?.({ sidebarViewMode: mode }).catch(() => {})
+  }, [])
+
+  const handleStartRename = useCallback(
+    (pageId: string): void => {
+      const page = pages.find((p) => p.id === pageId)
+      if (!page) return
+      setRenameValue(page.title)
+      setRenamingPageId(pageId)
+    },
+    [pages]
+  )
 
   useEffect(() => {
     if (renamingPageId && renameInputRef.current) {
@@ -28,12 +79,17 @@ export function Sidebar(): React.JSX.Element {
     }
   }, [renamingPageId])
 
-  const handleStartRename = (pageId: string): void => {
-    const page = pages.find((p) => p.id === pageId)
-    if (!page) return
-    setRenameValue(page.title)
-    setRenamingPageId(pageId)
-  }
+  useEffect(() => {
+    const handleRenameCurrent = (): void => {
+      if (currentPageId) {
+        handleStartRename(currentPageId)
+      }
+    }
+    window.addEventListener('inkbook:rename-current-page', handleRenameCurrent)
+    return (): void => {
+      window.removeEventListener('inkbook:rename-current-page', handleRenameCurrent)
+    }
+  }, [currentPageId, handleStartRename])
 
   const handleCommitRename = (pageId: string): void => {
     if (renameValue.trim()) {
@@ -72,6 +128,45 @@ export function Sidebar(): React.JSX.Element {
     }
   }
 
+  const handlePageItemKeyDown = (
+    e: KeyboardEvent<HTMLDivElement>,
+    pageId: string,
+    index: number
+  ): void => {
+    if (renamingPageId === pageId) return
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      setCurrentPage(pageId)
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const nextIndex = Math.min(pages.length - 1, index + 1)
+      const nextEl = pageListRef.current?.querySelectorAll<HTMLElement>('.page-item')[nextIndex]
+      nextEl?.focus()
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const prevIndex = Math.max(0, index - 1)
+      const prevEl = pageListRef.current?.querySelectorAll<HTMLElement>('.page-item')[prevIndex]
+      prevEl?.focus()
+    } else if (e.key === 'Home') {
+      e.preventDefault()
+      const firstEl = pageListRef.current?.querySelectorAll<HTMLElement>('.page-item')[0]
+      firstEl?.focus()
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      const items = pageListRef.current?.querySelectorAll<HTMLElement>('.page-item')
+      if (items && items.length > 0) {
+        items[items.length - 1]?.focus()
+      }
+    } else if (e.key === 'F2') {
+      e.preventDefault()
+      handleStartRename(pageId)
+    } else if (e.key === 'Delete') {
+      e.preventDefault()
+      handleDeletePage(pageId)
+    }
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -80,7 +175,7 @@ export function Sidebar(): React.JSX.Element {
           <button
             type="button"
             className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={(): void => setViewMode('list')}
+            onClick={(): void => handleSetViewMode('list')}
             title="List view"
             aria-label="List view"
           >
@@ -91,7 +186,7 @@ export function Sidebar(): React.JSX.Element {
           <button
             type="button"
             className={`view-toggle-btn ${viewMode === 'thumbnail' ? 'active' : ''}`}
-            onClick={(): void => setViewMode('thumbnail')}
+            onClick={(): void => handleSetViewMode('thumbnail')}
             title="Thumbnail view"
             aria-label="Thumbnail view"
           >
@@ -103,8 +198,10 @@ export function Sidebar(): React.JSX.Element {
       </div>
 
       <div
+        ref={pageListRef}
         className={`page-list ${viewMode === 'thumbnail' ? 'page-grid-view' : 'page-list-view'}`}
         role="list"
+        aria-label="Pages list"
       >
         {pages.map((page, index) => {
           const isActive = page.id === currentPageId
@@ -116,6 +213,10 @@ export function Sidebar(): React.JSX.Element {
             <div
               key={page.id}
               role="listitem"
+              tabIndex={isRenaming ? -1 : 0}
+              aria-selected={isActive}
+              aria-current={isActive ? 'page' : undefined}
+              aria-label={`Page ${index + 1}: ${page.title}`}
               draggable={!isRenaming}
               className={`page-item ${viewMode === 'thumbnail' ? 'page-card-item' : ''} ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isDragOver ? 'drag-over' : ''}`}
               onClick={(): void => {
@@ -123,6 +224,7 @@ export function Sidebar(): React.JSX.Element {
                   setCurrentPage(page.id)
                 }
               }}
+              onKeyDown={(e): void => handlePageItemKeyDown(e, page.id, index)}
               onContextMenu={(e): void => handleOpenContextMenu(e, page.id, index)}
               onDragStart={(e): void => {
                 e.dataTransfer.setData('text/plain', String(index))
@@ -274,6 +376,7 @@ export function Sidebar(): React.JSX.Element {
           onDelete={handleDeletePage}
           onMoveUp={(idx): void => reorderPages(idx, idx - 1)}
           onMoveDown={(idx): void => reorderPages(idx, idx + 1)}
+          onOpenPageSettings={(): void => onOpenPageSettings?.()}
         />
       )}
     </aside>

@@ -10,7 +10,8 @@ export function drawPageBackgroundToCanvas(
   height: number,
   background: PageBackground,
   theme: 'dark' | 'light' = 'dark',
-  transparent = false
+  transparent = false,
+  showMarginLine = BACKGROUND_CONFIG.showRuledLeftMargin
 ): void {
   const colors = getBackgroundColors(theme)
 
@@ -24,8 +25,7 @@ export function drawPageBackgroundToCanvas(
   }
 
   ctx.save()
-  const { spacing, ruledTopMargin, ruledLeftMargin, showRuledLeftMargin, dotRadius, strokeWidth } =
-    BACKGROUND_CONFIG
+  const { spacing, ruledTopMargin, ruledLeftMargin, dotRadius, strokeWidth } = BACKGROUND_CONFIG
 
   if (background === 'ruled') {
     ctx.strokeStyle = colors.ruledLine
@@ -37,7 +37,7 @@ export function drawPageBackgroundToCanvas(
     }
     ctx.stroke()
 
-    if (showRuledLeftMargin) {
+    if (showMarginLine) {
       ctx.strokeStyle = colors.ruledMarginLine
       ctx.beginPath()
       ctx.moveTo(ruledLeftMargin, 0)
@@ -79,11 +79,11 @@ export function generateBackgroundSvgMarkup(
   height: number,
   background: PageBackground,
   theme: 'dark' | 'light' = 'dark',
-  transparent = false
+  transparent = false,
+  showMarginLine = BACKGROUND_CONFIG.showRuledLeftMargin
 ): string {
   const colors = getBackgroundColors(theme)
-  const { spacing, ruledTopMargin, ruledLeftMargin, showRuledLeftMargin, dotRadius, strokeWidth } =
-    BACKGROUND_CONFIG
+  const { spacing, ruledTopMargin, ruledLeftMargin, dotRadius, strokeWidth } = BACKGROUND_CONFIG
 
   let bgMarkup = ''
   if (!transparent) {
@@ -99,7 +99,7 @@ export function generateBackgroundSvgMarkup(
     for (let y = ruledTopMargin; y < height; y += spacing) {
       lines += `<line x1="0" y1="${y}" x2="${width}" y2="${y}" stroke="${colors.ruledLine}" stroke-width="${strokeWidth}" />\n`
     }
-    if (showRuledLeftMargin) {
+    if (showMarginLine) {
       lines += `<line x1="${ruledLeftMargin}" y1="0" x2="${ruledLeftMargin}" y2="${height}" stroke="${colors.ruledMarginLine}" stroke-width="${strokeWidth}" />\n`
     }
     bgMarkup += lines

@@ -16,6 +16,7 @@ interface PageContextMenuProps {
   onDelete: (pageId: string) => void
   onMoveUp: (pageIndex: number) => void
   onMoveDown: (pageIndex: number) => void
+  onOpenPageSettings?: (pageId: string) => void
 }
 
 export function PageContextMenu({
@@ -26,7 +27,8 @@ export function PageContextMenu({
   onDuplicate,
   onDelete,
   onMoveUp,
-  onMoveDown
+  onMoveDown,
+  onOpenPageSettings
 }: PageContextMenuProps): React.JSX.Element {
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -82,6 +84,16 @@ export function PageContextMenu({
         }}
       >
         Duplicate
+      </button>
+
+      <button
+        className="context-menu-item"
+        onClick={(): void => {
+          onOpenPageSettings?.(position.pageId)
+          onClose()
+        }}
+      >
+        Page Settings...
       </button>
 
       <div className="context-menu-separator" />

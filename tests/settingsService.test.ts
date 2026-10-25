@@ -6,6 +6,7 @@ import { randomBytes } from 'crypto'
 import {
   readSettings,
   writeSettings,
+  updateSettings,
   getRecentNotebooks,
   addRecentNotebook,
   clearRecentNotebooks
@@ -90,5 +91,32 @@ describe('settingsService (Recent Notebooks Persistence)', () => {
     await clearRecentNotebooks(testDir)
     const settings = await readSettings(testDir)
     expect(settings.recentNotebooks).toEqual([])
+  })
+
+  it('reads default settings for theme, sidebarViewMode, and autosaveInterval', async () => {
+    const settings = await readSettings(testDir)
+    expect(settings.theme).toBe('system')
+    expect(settings.sidebarViewMode).toBe('list')
+    expect(settings.autosaveInterval).toBe(2000)
+  })
+
+  it('updates and persists user settings via updateSettings', async () => {
+    const updated = await updateSettings(
+      {
+        theme: 'dark',
+        sidebarViewMode: 'thumbnail',
+        autosaveInterval: 3000
+      },
+      testDir
+    )
+
+    expect(updated.theme).toBe('dark')
+    expect(updated.sidebarViewMode).toBe('thumbnail')
+    expect(updated.autosaveInterval).toBe(3000)
+
+    const reloaded = await readSettings(testDir)
+    expect(reloaded.theme).toBe('dark')
+    expect(reloaded.sidebarViewMode).toBe('thumbnail')
+    expect(reloaded.autosaveInterval).toBe(3000)
   })
 })
