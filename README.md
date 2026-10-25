@@ -19,7 +19,7 @@ A Linux desktop notebook application built on top of Excalidraw.
 - **Drawing Engine**: `@excalidraw/excalidraw`
 - **State Management**: Zustand
 - **Testing**: Vitest
-- **Packaging**: electron-builder (AppImage & .deb for Linux)
+- **Packaging**: electron-builder (AppImage & pacman for Linux)
 - **Code Quality**: ESLint + Prettier
 
 ## Project Structure
@@ -76,11 +76,24 @@ npm run lint
 
 ### Packaging (Linux)
 
-Build production binaries (AppImage & .deb):
+Build production binaries (AppImage and pacman package):
 
 ```bash
 npm run package
 ```
+
+### Linux Display Servers (Wayland & X11)
+
+InkBook is built with support for both modern Wayland compositors (Hyprland, Sway, GNOME, KDE Plasma) and traditional X11 window managers.
+
+- **Automatic Detection**: InkBook sets `--ozone-platform-hint=auto` at runtime. Under Wayland sessions (`$WAYLAND_DISPLAY` or `XDG_SESSION_TYPE=wayland`), it runs natively as a Wayland client with fractional scaling support and client-side window decorations (`WaylandWindowDecorations`). Under X11, it automatically runs in X11 mode.
+- **Manual Overrides**:
+  - Force Wayland: `inkbook --ozone-platform=wayland`
+  - Force X11 / XWayland: `inkbook --ozone-platform=x11`
+
+### Arch Linux & AUR
+
+A template `PKGBUILD` and step-by-step submission guide are provided in [`packaging/arch/`](file:///home/sumit/Code/InkBook/packaging/arch/).
 
 ## License & Third-Party Notices
 

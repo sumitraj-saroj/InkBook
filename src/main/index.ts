@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, session } from 'electron'
 import { join } from 'path'
 import { promises as fs } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -22,9 +22,16 @@ import {
   updateSettings
 } from './settingsService'
 import { findInkBookArgument } from './commandLine'
+import { isValidExternalUrl } from '../shared/index'
 import type { Notebook, UserSettings } from '../shared/types'
 
 const initialFileArgument = findInkBookArgument(process.argv)
+
+// Linux display server configuration (Wayland & X11 auto-detection)
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
+  app.commandLine.appendSwitch('enable-features', 'WaylandWindowDecorations')
+}
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock()
 if (!gotSingleInstanceLock) {
@@ -63,9 +70,16 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      devTools: is.dev
     }
   })
+
+  if (!is.dev) {
+    mainWindow.webContents.on('devtools-opened', () => {
+      mainWindow.webContents.closeDevTools()
+    })
+  }
 
   mainWindowInstance = mainWindow
 
@@ -99,8 +113,29 @@ function createWindow(): void {
     mainWindow.show()
   })
 
+  // Block in-app navigation to external URLs; open validated external URLs in default browser
+  mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+    if (
+      is.dev &&
+      process.env['ELECTRON_RENDERER_URL'] &&
+      navigationUrl.startsWith(process.env['ELECTRON_RENDERER_URL'])
+    ) {
+      return
+    }
+    if (navigationUrl.startsWith('file://')) {
+      return
+    }
+
+    event.preventDefault()
+    if (isValidExternalUrl(navigationUrl)) {
+      shell.openExternal(navigationUrl).catch(console.error)
+    }
+  })
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    if (isValidExternalUrl(details.url)) {
+      shell.openExternal(details.url).catch(console.error)
+    }
     return { action: 'deny' }
   })
 
@@ -116,13 +151,27 @@ function createWindow(): void {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {
+  // Enforce Content Security Policy on all loaded pages
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; object-src 'none';"
+        ]
+      }
+    })
+  })
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.inkbook.app')
 
-  // Default open or close DevTools by F12 in development
+  // Default open or close DevTools by F12 in development only
   // and ignore CommandOrControl + R in production.
   app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
+    if (is.dev) {
+      optimizer.watchWindowShortcuts(window)
+    }
   })
 
   // IPC test

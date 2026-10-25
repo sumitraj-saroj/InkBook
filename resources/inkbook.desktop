@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=InkBook
+Comment=Handwritten digital notebook powered by Excalidraw
+GenericName=Digital Notebook
+Exec=inkbook %F
+Icon=inkbook
+Terminal=false
+Type=Application
+Categories=Office;Graphics;
+MimeType=application/x-inkbook;
+StartupNotify=true
+StartupWMClass=InkBook

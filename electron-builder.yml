@@ -2,6 +2,7 @@ appId: com.inkbook.app
 productName: InkBook
 directories:
   buildResources: resources
+  output: dist
 files:
   - '!**/.vscode/*'
   - '!src/*'
@@ -37,22 +38,19 @@ dmg:
 linux:
   target:
     - AppImage
-    - deb
+    - pacman
+  executableName: inkbook
+  executableArgs:
+    - '%F'
   maintainer: InkBook Developers
-  category: Office;Graphics;Utility
-  desktop:
-    Name: InkBook
-    Comment: Handwritten digital notebook powered by Excalidraw
-    GenericName: Digital Notebook
-    Exec: inkbook %U
-    Terminal: false
-    Type: Application
-    Icon: inkbook
-    Categories: Office;Graphics;Utility;
-    MimeType: application/x-inkbook;
-  mimeType:
+  category: Office;Graphics;
+  synopsis: Handwritten digital notebook powered by Excalidraw
+  description: A local-first, distraction-free digital notebook application for Linux with fixed page boundaries and paper background presets.
+  mimeTypes:
     - application/x-inkbook
 appImage:
+  artifactName: ${name}-${version}.${ext}
+pacman:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 publish:
