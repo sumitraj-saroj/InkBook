@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { InkBookAPI, Notebook, Page, SaveNotebookResult } from '@shared/types'
+import type {
+  InkBookAPI,
+  Notebook,
+  OpenFileResult,
+  Page,
+  SaveFileResult,
+  SaveNotebookResult
+} from '@shared/types'
 
 const api: InkBookAPI = {
   openNotebook: async (filePath?: string): Promise<Notebook | null> => {
@@ -16,6 +23,12 @@ const api: InkBookAPI = {
   },
   getRecentFiles: async (): Promise<string[]> => {
     return ipcRenderer.invoke('notebook:recent')
+  },
+  openExcalidrawFile: async (): Promise<OpenFileResult> => {
+    return ipcRenderer.invoke('excalidraw:open')
+  },
+  saveExcalidrawFile: async (content: string): Promise<SaveFileResult> => {
+    return ipcRenderer.invoke('excalidraw:save', content)
   }
 }
 

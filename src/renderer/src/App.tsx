@@ -1,4 +1,10 @@
 import { useState } from 'react'
+import { serializeAsJSON, restore } from '@excalidraw/excalidraw'
+import { ExcalidrawEditor } from './components/ExcalidrawEditor'
+import { useTheme } from './context/ThemeContext'
+import { ThemeProvider } from './context/ThemeProvider'
+import { useEditor } from './context/EditorContext'
+import { EditorProvider } from './context/EditorProvider'
 
 interface MockPage {
   id: string
@@ -6,7 +12,9 @@ interface MockPage {
   background: 'blank' | 'ruled' | 'grid' | 'dotted'
 }
 
-function App(): React.JSX.Element {
+function Workspace(): React.JSX.Element {
+  const { theme, toggleTheme } = useTheme()
+  const { excalidrawAPI } = useEditor()
   const [pages] = useState<MockPage[]>([
     { id: 'page-1', title: 'Page 1', background: 'ruled' },
     { id: 'page-2', title: 'Page 2', background: 'grid' }
@@ -16,16 +24,60 @@ function App(): React.JSX.Element {
 
   const activePage = pages.find((p) => p.id === activePageId) ?? pages[0]
 
+  const handleOpen = async (): Promise<void> => {
+    if (!excalidrawAPI) return
+    const result = await window.api.openExcalidrawFile()
+    if (result.canceled || !result.content) return
+
+    try {
+      const data = JSON.parse(result.content) as Parameters<typeof restore>[0]
+      const restored = restore(data, null, null)
+      if (restored.files) {
+        excalidrawAPI.addFiles(Object.values(restored.files))
+      }
+      excalidrawAPI.updateScene({
+        elements: restored.elements,
+        appState: restored.appState
+      })
+      excalidrawAPI.scrollToContent(restored.elements, { fitToViewport: true })
+    } catch (err) {
+      console.error('Failed to parse or restore .excalidraw file:', err)
+    }
+  }
+
+  const handleSave = async (): Promise<void> => {
+    if (!excalidrawAPI) return
+    const elements = excalidrawAPI.getSceneElements()
+    const appState = excalidrawAPI.getAppState()
+    const files = excalidrawAPI.getFiles()
+
+    const json = serializeAsJSON(elements, appState, files, 'local')
+    await window.api.saveExcalidrawFile(json)
+  }
+
   return (
-    <div className="app-container">
-      {/* Top Bar: Notebook title at top-left */}
+    <div className="app-container" data-theme={theme}>
+      {/* Top Bar: Notebook title at top-left and actions */}
       <header className="topbar">
         <div className="notebook-meta">
           <span className="notebook-badge">InkBook</span>
           <span className="notebook-title">{notebookName}</span>
+          <span className="page-indicator">• {activePage?.title ?? 'Page 1'}</span>
         </div>
         <div className="app-actions">
-          <span>Dark Theme</span>
+          <button
+            className="action-btn"
+            onClick={handleOpen}
+            title="Open an Excalidraw drawing file"
+          >
+            Open .excalidraw
+          </button>
+          <button className="action-btn" onClick={handleSave} title="Save drawing as .excalidraw">
+            Save .excalidraw
+          </button>
+          <button className="theme-toggle-btn" onClick={toggleTheme}>
+            Theme: {theme === 'dark' ? 'Dark' : 'Light'}
+          </button>
         </div>
       </header>
 
@@ -70,21 +122,22 @@ function App(): React.JSX.Element {
 
         {/* Main Content Area */}
         <main className="canvas-area">
-          <div className="page-viewport-mock">
-            <h2 className="mock-title">{activePage?.title ?? 'Page'}</h2>
-            <p className="mock-subtitle">
-              Drawing area placeholder. Excalidraw integration and hard-boundary engine will be
-              mounted here in Phase 2.
-            </p>
-            <div className="mock-specs">
-              <span>A4 Portrait (794 × 1123 px)</span>
-              <span>•</span>
-              <span>Background: {activePage?.background ?? 'blank'}</span>
-            </div>
+          <div className="editor-wrapper">
+            <ExcalidrawEditor />
           </div>
         </main>
       </div>
     </div>
+  )
+}
+
+function App(): React.JSX.Element {
+  return (
+    <ThemeProvider>
+      <EditorProvider>
+        <Workspace />
+      </EditorProvider>
+    </ThemeProvider>
   )
 }
 
