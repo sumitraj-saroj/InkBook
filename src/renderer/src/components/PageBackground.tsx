@@ -16,7 +16,7 @@ export interface PageBackgroundProps {
   zoom: number
 }
 
-export function PageBackground({
+export function PageBackgroundComponent({
   pageDimensions,
   background,
   showMarginLine = BACKGROUND_CONFIG.showRuledLeftMargin,
@@ -174,3 +174,5 @@ export function PageBackground({
     </svg>
   )
 }
+
+export const PageBackground = React.memo(PageBackgroundComponent)

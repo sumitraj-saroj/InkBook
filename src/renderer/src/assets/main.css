@@ -502,8 +502,12 @@ body,
 
 .page-overlay-container {
   z-index: 3 !important;
+  contain: strict;
+  transform: translateZ(0);
 }
 
-.page-sheet-background {
+.page-background-svg {
   z-index: 0 !important;
+  contain: strict;
+  transform: translateZ(0);
 }
