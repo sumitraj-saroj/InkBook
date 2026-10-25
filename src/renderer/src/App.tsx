@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { serializeAsJSON, restore } from '@excalidraw/excalidraw'
 import { ExcalidrawEditor } from './components/ExcalidrawEditor'
+import { NotebookTitle } from './components/NotebookTitle'
 import { useTheme } from './context/ThemeContext'
 import { ThemeProvider } from './context/ThemeProvider'
 import { useEditor } from './context/EditorContext'
@@ -20,9 +21,6 @@ function Workspace(): React.JSX.Element {
     { id: 'page-2', title: 'Page 2', background: 'grid' }
   ])
   const [activePageId, setActivePageId] = useState<string>('page-1')
-  const notebookName = 'Untitled Notebook'
-
-  const activePage = pages.find((p) => p.id === activePageId) ?? pages[0]
 
   const handleOpen = async (): Promise<void> => {
     if (!excalidrawAPI) return
@@ -61,8 +59,7 @@ function Workspace(): React.JSX.Element {
       <header className="topbar">
         <div className="notebook-meta">
           <span className="notebook-badge">InkBook</span>
-          <span className="notebook-title">{notebookName}</span>
-          <span className="page-indicator">• {activePage?.title ?? 'Page 1'}</span>
+          <NotebookTitle />
         </div>
         <div className="app-actions">
           <button

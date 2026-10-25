@@ -84,6 +84,48 @@ body,
   gap: 12px;
 }
 
+.notebook-title-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.notebook-title-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.notebook-title-btn:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+.notebook-title-input {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--accent);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 3px 7px;
+  border-radius: 4px;
+  outline: none;
+  min-width: 140px;
+}
+
+.dirty-indicator {
+  color: var(--accent);
+  font-weight: bold;
+}
+
 .notebook-badge {
   font-weight: 700;
   font-size: 14px;
