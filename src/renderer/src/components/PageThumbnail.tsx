@@ -33,8 +33,7 @@ export function PageThumbnail({ page, className, style }: PageThumbnailProps): R
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    const cached = thumbnailCache.get(cacheKey)
-    if (cached) {
+    if (thumbnailCache.has(cacheKey)) {
       return
     }
 
