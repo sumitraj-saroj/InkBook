@@ -97,7 +97,50 @@ export function getElementBounds(element: BoundedElement): ElementBounds {
     }
   }
 
-  // Standard rectangular elements (rectangle, image, frame, etc.)
+  // Linear elements (line, arrow) and freedraw
+  if (
+    (element.type === 'line' || element.type === 'arrow' || element.type === 'freedraw') &&
+    element.points &&
+    element.points.length > 0
+  ) {
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+
+    for (const [px, py] of element.points) {
+      const sceneX = x + px
+      const sceneY = y + py
+      const rotated = rotatePoint(sceneX, sceneY, cx, cy, angle)
+      minX = Math.min(minX, rotated[0])
+      minY = Math.min(minY, rotated[1])
+      maxX = Math.max(maxX, rotated[0])
+      maxY = Math.max(maxY, rotated[1])
+    }
+
+    // For arrows with arrowheads, account for the arrowhead geometry
+    if (element.type === 'arrow') {
+      const stroke = element.strokeWidth ?? 1
+      const arrowheadMargin = Math.max(stroke * 2, 10)
+      if (element.startArrowhead || element.endArrowhead) {
+        minX -= arrowheadMargin
+        minY -= arrowheadMargin
+        maxX += arrowheadMargin
+        maxY += arrowheadMargin
+      }
+    }
+
+    return {
+      minX,
+      minY,
+      maxX,
+      maxY,
+      width: maxX - minX,
+      height: maxY - minY
+    }
+  }
+
+  // Text elements and standard rectangular elements (rectangle, image, frame, text)
   if (!angle) {
     const minX = Math.min(x, x + width)
     const maxX = Math.max(x, x + width)
