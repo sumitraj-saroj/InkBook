@@ -317,6 +317,25 @@ body,
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+.page-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.page-item:focus-visible .page-menu-trigger {
+  opacity: 1;
+}
+
+.view-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.btn-add-page-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .page-item-main {
   display: flex;
   align-items: center;

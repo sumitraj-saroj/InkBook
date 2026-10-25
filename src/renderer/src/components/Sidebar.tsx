@@ -29,6 +29,7 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
   const [renameValue, setRenameValue] = useState<string>('')
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const pageListRef = useRef<HTMLDivElement>(null)
   const [viewMode, setViewMode] = useState<'list' | 'thumbnail'>(() => {
     try {
       const saved = localStorage.getItem('inkbook-sidebar-view-mode')
@@ -127,6 +128,45 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
     }
   }
 
+  const handlePageItemKeyDown = (
+    e: KeyboardEvent<HTMLDivElement>,
+    pageId: string,
+    index: number
+  ): void => {
+    if (renamingPageId === pageId) return
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      setCurrentPage(pageId)
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const nextIndex = Math.min(pages.length - 1, index + 1)
+      const nextEl = pageListRef.current?.querySelectorAll<HTMLElement>('.page-item')[nextIndex]
+      nextEl?.focus()
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const prevIndex = Math.max(0, index - 1)
+      const prevEl = pageListRef.current?.querySelectorAll<HTMLElement>('.page-item')[prevIndex]
+      prevEl?.focus()
+    } else if (e.key === 'Home') {
+      e.preventDefault()
+      const firstEl = pageListRef.current?.querySelectorAll<HTMLElement>('.page-item')[0]
+      firstEl?.focus()
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      const items = pageListRef.current?.querySelectorAll<HTMLElement>('.page-item')
+      if (items && items.length > 0) {
+        items[items.length - 1]?.focus()
+      }
+    } else if (e.key === 'F2') {
+      e.preventDefault()
+      handleStartRename(pageId)
+    } else if (e.key === 'Delete') {
+      e.preventDefault()
+      handleDeletePage(pageId)
+    }
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -158,8 +198,10 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
       </div>
 
       <div
+        ref={pageListRef}
         className={`page-list ${viewMode === 'thumbnail' ? 'page-grid-view' : 'page-list-view'}`}
         role="list"
+        aria-label="Pages list"
       >
         {pages.map((page, index) => {
           const isActive = page.id === currentPageId
@@ -171,6 +213,10 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
             <div
               key={page.id}
               role="listitem"
+              tabIndex={isRenaming ? -1 : 0}
+              aria-selected={isActive}
+              aria-current={isActive ? 'page' : undefined}
+              aria-label={`Page ${index + 1}: ${page.title}`}
               draggable={!isRenaming}
               className={`page-item ${viewMode === 'thumbnail' ? 'page-card-item' : ''} ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isDragOver ? 'drag-over' : ''}`}
               onClick={(): void => {
@@ -178,6 +224,7 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
                   setCurrentPage(page.id)
                 }
               }}
+              onKeyDown={(e): void => handlePageItemKeyDown(e, page.id, index)}
               onContextMenu={(e): void => handleOpenContextMenu(e, page.id, index)}
               onDragStart={(e): void => {
                 e.dataTransfer.setData('text/plain', String(index))
