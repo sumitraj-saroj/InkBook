@@ -26,11 +26,12 @@ export function PageBackground({
 }: PageBackgroundProps): React.JSX.Element {
   const { theme } = useTheme()
   const colors = getBackgroundColors(theme)
-  const { spacing, ruledTopMargin, ruledLeftMargin, strokeWidth } = BACKGROUND_CONFIG
+  const { spacing, ruledTopMargin, ruledLeftMargin, strokeWidth, dotRadius } = BACKGROUND_CONFIG
 
   const clipId = 'page-paper-clip'
   const ruledPatternId = 'page-ruled-pattern'
   const gridPatternId = 'page-grid-pattern'
+  const dotsPatternId = 'page-dots-pattern'
 
   return (
     <svg
@@ -86,6 +87,18 @@ export function PageBackground({
             strokeWidth={strokeWidth}
           />
         </pattern>
+
+        {/* Dot grid pattern */}
+        <pattern
+          id={dotsPatternId}
+          x="0"
+          y="0"
+          width={spacing}
+          height={spacing}
+          patternUnits="userSpaceOnUse"
+        >
+          <circle cx={spacing / 2} cy={spacing / 2} r={dotRadius} fill={colors.dot} />
+        </pattern>
       </defs>
 
       <g transform={`translate(${scrollX * zoom}, ${scrollY * zoom}) scale(${zoom})`}>
@@ -139,6 +152,16 @@ export function PageBackground({
               width={pageDimensions.width}
               height={pageDimensions.height}
               fill={`url(#${gridPatternId})`}
+            />
+          )}
+
+          {background === 'dots' && (
+            <rect
+              x="0"
+              y="0"
+              width={pageDimensions.width}
+              height={pageDimensions.height}
+              fill={`url(#${dotsPatternId})`}
             />
           )}
         </g>
