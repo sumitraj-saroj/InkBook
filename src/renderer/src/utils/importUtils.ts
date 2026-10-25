@@ -1,0 +1,140 @@
+import { restore, restoreLibraryItems } from '@excalidraw/excalidraw'
+import type { BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
+import {
+  getPageDimensions,
+  scaleAndCenterElements,
+  regenerateElementIds,
+  parseLibraryItems,
+  type BoundedElement,
+  type Page
+} from '@shared/index'
+import { useNotebookStore } from '../store/notebookStore'
+
+export interface RestoredSceneData {
+  elements: readonly BoundedElement[]
+  files: BinaryFiles
+}
+
+/**
+ * Parses raw JSON string of an .excalidraw file and restores elements and embedded files.
+ */
+export function parseExcalidrawJson(jsonContent: string): RestoredSceneData {
+  const parsed = JSON.parse(jsonContent)
+  const restored = restore(parsed, null, null)
+
+  return {
+    elements: restored.elements as unknown as readonly BoundedElement[],
+    files: restored.files ?? {}
+  }
+}
+
+/**
+ * Extracts a readable title from a file path or returns a fallback title.
+ */
+export function getTitleFromPath(filePath?: string, fallback = 'Imported Page'): string {
+  if (!filePath) return fallback
+  const segments = filePath.split(/[/\\]/)
+  const lastSegment = segments[segments.length - 1] ?? fallback
+  return lastSegment.replace(/\.(excalidraw|json)$/i, '') || fallback
+}
+
+/**
+ * Imports an .excalidraw drawing as a brand-new notebook page.
+ * Scales down content uniformly to fit within page margins if larger than page dimensions,
+ * centers elements on the page, and switches to the new page.
+ */
+export function importExcalidrawAsNewPage(
+  content: string,
+  filePath?: string
+): { page: Page; elements: readonly BoundedElement[]; files: BinaryFiles } {
+  const restored = parseExcalidrawJson(content)
+  const store = useNotebookStore.getState()
+
+  // Create new page with default A4 portrait preset
+  const newPage = store.addPage('A4', 'portrait', 'blank')
+  const title = getTitleFromPath(filePath, `Imported - ${newPage.title}`)
+  store.renamePage(newPage.id, title)
+
+  const dims = getPageDimensions(newPage)
+  const scaledElements = scaleAndCenterElements(restored.elements, dims.width, dims.height, 48)
+
+  store.updatePageScene(newPage.id, {
+    elements: scaledElements,
+    files: restored.files as Record<string, unknown>
+  })
+
+  return {
+    page: { ...newPage, title },
+    elements: scaledElements,
+    files: restored.files
+  }
+}
+
+/**
+ * Imports an .excalidraw drawing into the current active notebook page.
+ * Regenerates element IDs to prevent conflicts, scales content down uniformly if larger
+ * than page dimensions minus margins, centers it, and merges elements and files into the page.
+ */
+export function importExcalidrawIntoCurrentPage(
+  content: string,
+  currentPage: Page,
+  currentLiveElements?: readonly BoundedElement[],
+  currentLiveFiles?: BinaryFiles
+): {
+  mergedElements: readonly BoundedElement[]
+  newFiles: BinaryFiles
+} {
+  const restored = parseExcalidrawJson(content)
+  const dims = getPageDimensions(currentPage)
+
+  // Regenerate IDs for imported elements to prevent collision
+  const freshElements = regenerateElementIds(restored.elements)
+
+  // Scale down if larger than page with margin, and center
+  const scaledElements = scaleAndCenterElements(freshElements, dims.width, dims.height, 48)
+
+  const existingElements =
+    currentLiveElements ?? (currentPage.scene.elements as readonly BoundedElement[])
+  const existingFiles = currentLiveFiles ?? (currentPage.scene.files as BinaryFiles)
+
+  const mergedElements = [...existingElements, ...scaledElements]
+  const mergedFiles: BinaryFiles = {
+    ...existingFiles,
+    ...restored.files
+  }
+
+  const store = useNotebookStore.getState()
+  store.updatePageScene(currentPage.id, {
+    elements: mergedElements,
+    files: mergedFiles as Record<string, unknown>
+  })
+
+  return {
+    mergedElements,
+    newFiles: restored.files
+  }
+}
+
+/**
+ * Imports an .excalidrawlib file into Excalidraw's component library.
+ * Merges items into the existing library and opens the library menu.
+ */
+export async function importExcalidrawLibrary(
+  content: string,
+  api: ExcalidrawImperativeAPI
+): Promise<number> {
+  const rawItems = parseLibraryItems(content)
+  const restoredItems = restoreLibraryItems(
+    rawItems as Parameters<typeof restoreLibraryItems>[0],
+    'unpublished'
+  )
+
+  await api.updateLibrary({
+    libraryItems: restoredItems,
+    merge: true,
+    openLibraryMenu: true,
+    defaultStatus: 'unpublished'
+  })
+
+  return restoredItems.length
+}

@@ -101,6 +101,50 @@ export function setupApplicationMenu(): void {
         },
         { type: 'separator' },
         {
+          label: 'Import .excalidraw as New Page...',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'import-new-page')
+          }
+        },
+        {
+          label: 'Import .excalidraw into Current Page...',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'import-current-page')
+          }
+        },
+        {
+          label: 'Import Library (.excalidrawlib)...',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'import-library')
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Export Page as PNG...',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'export-png')
+          }
+        },
+        {
+          label: 'Export Page as SVG...',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'export-svg')
+          }
+        },
+        {
+          label: 'Export Page as .excalidraw...',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'export-excalidraw')
+          }
+        },
+        {
+          label: 'Export Notebook as PDF...',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'export-pdf')
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'Close Notebook',
           accelerator: 'CmdOrCtrl+W',
           click: (_item, win): void => {

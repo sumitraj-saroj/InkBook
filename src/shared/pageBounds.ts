@@ -21,9 +21,12 @@ export interface BoundedElement {
   points?: readonly (readonly [number, number])[]
   isDeleted?: boolean
   containerId?: string | null
+  frameId?: string | null
+  boundElements?: readonly { id: string; type?: string }[] | null
   startArrowhead?: string | null
   endArrowhead?: string | null
   strokeWidth?: number
+  fontSize?: number
   version?: number
   versionNonce?: number
   [key: string]: unknown

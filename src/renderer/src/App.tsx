@@ -6,6 +6,7 @@ import { NotebookTitle } from './components/NotebookTitle'
 import { Sidebar } from './components/Sidebar'
 import { BackgroundPicker } from './components/BackgroundPicker'
 import { WelcomeScreen } from './components/WelcomeScreen'
+import { ExportDialog } from './components/ExportDialog'
 import { useTheme } from './context/ThemeContext'
 import { ThemeProvider } from './context/ThemeProvider'
 import { useEditor } from './context/EditorContext'
@@ -14,6 +15,13 @@ import { useNotebookStore } from './store/notebookStore'
 import { calculatePageFit, getPageDimensions } from '@shared/index'
 import { useAutosave } from './hooks/useAutosave'
 import { useRecovery } from './hooks/useRecovery'
+import {
+  importExcalidrawAsNewPage,
+  importExcalidrawIntoCurrentPage,
+  importExcalidrawLibrary
+} from './utils/importUtils'
+import type { BoundedElement } from '@shared/pageBounds'
+import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 
 function Workspace(): React.JSX.Element {
   useAutosave()
@@ -30,6 +38,8 @@ function Workspace(): React.JSX.Element {
   const markClean = useNotebookStore((s) => s.markClean)
 
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false)
+  const [isExportOpen, setIsExportOpen] = useState(false)
+  const [exportFormat, setExportFormat] = useState<'png' | 'svg' | 'excalidraw' | 'pdf'>('png')
 
   const handleFitToWindow = useCallback((): void => {
     if (!excalidrawAPI) return
@@ -146,6 +156,79 @@ function Workspace(): React.JSX.Element {
     markClean()
   }, [currentNotebook, setFilePath, markClean])
 
+  const handleImportAsNewPage = useCallback(async (): Promise<void> => {
+    const res = await window.api.openExcalidrawFile()
+    if (res.canceled || !res.content) return
+
+    try {
+      const result = importExcalidrawAsNewPage(res.content, res.filePath)
+      if (excalidrawAPI) {
+        if (result.files && Object.keys(result.files).length > 0) {
+          excalidrawAPI.addFiles(Object.values(result.files))
+        }
+        excalidrawAPI.updateScene({
+          elements: result.elements as unknown as Parameters<
+            typeof excalidrawAPI.updateScene
+          >[0]['elements'],
+          captureUpdate: CaptureUpdateAction.IMMEDIATELY
+        })
+        handleFitToWindow()
+      }
+    } catch (err) {
+      console.error('Failed to import .excalidraw:', err)
+      alert(`Failed to import file: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }, [excalidrawAPI, handleFitToWindow])
+
+  const handleImportIntoCurrentPage = useCallback(async (): Promise<void> => {
+    const page = currentNotebook.pages.find((p) => p.id === currentPageId)
+    if (!page) return
+
+    const res = await window.api.openExcalidrawFile()
+    if (res.canceled || !res.content) return
+
+    try {
+      const liveElements = excalidrawAPI
+        ? (excalidrawAPI.getSceneElements() as unknown as readonly BoundedElement[])
+        : undefined
+      const liveFiles = excalidrawAPI ? (excalidrawAPI.getFiles() as BinaryFiles) : undefined
+
+      const result = importExcalidrawIntoCurrentPage(res.content, page, liveElements, liveFiles)
+
+      if (excalidrawAPI) {
+        if (result.newFiles && Object.keys(result.newFiles).length > 0) {
+          excalidrawAPI.addFiles(Object.values(result.newFiles))
+        }
+        excalidrawAPI.updateScene({
+          elements: result.mergedElements as unknown as Parameters<
+            typeof excalidrawAPI.updateScene
+          >[0]['elements'],
+          captureUpdate: CaptureUpdateAction.IMMEDIATELY
+        })
+      }
+    } catch (err) {
+      console.error('Failed to import into current page:', err)
+      alert(
+        `Failed to import into current page: ${err instanceof Error ? err.message : String(err)}`
+      )
+    }
+  }, [currentNotebook.pages, currentPageId, excalidrawAPI])
+
+  const handleImportLibrary = useCallback(async (): Promise<void> => {
+    if (!excalidrawAPI) return
+
+    const res = await window.api.openExcalidrawLibraryFile()
+    if (res.canceled || !res.content) return
+
+    try {
+      const count = await importExcalidrawLibrary(res.content, excalidrawAPI)
+      console.log(`Imported ${count} items into Excalidraw library.`)
+    } catch (err) {
+      console.error('Failed to import library:', err)
+      alert(`Failed to import library: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }, [excalidrawAPI])
+
   // Global shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -199,6 +282,31 @@ function Workspace(): React.JSX.Element {
         case 'clear-recent':
           window.api.clearRecentFiles().catch(console.error)
           break
+        case 'import-new-page':
+          handleImportAsNewPage().catch(console.error)
+          break
+        case 'import-current-page':
+          handleImportIntoCurrentPage().catch(console.error)
+          break
+        case 'import-library':
+          handleImportLibrary().catch(console.error)
+          break
+        case 'export-png':
+          setExportFormat('png')
+          setIsExportOpen(true)
+          break
+        case 'export-svg':
+          setExportFormat('svg')
+          setIsExportOpen(true)
+          break
+        case 'export-excalidraw':
+          setExportFormat('excalidraw')
+          setIsExportOpen(true)
+          break
+        case 'export-pdf':
+          setExportFormat('pdf')
+          setIsExportOpen(true)
+          break
         case 'save-notebook':
           handleSaveNotebook()
           break
@@ -218,7 +326,10 @@ function Workspace(): React.JSX.Element {
     handleOpenNotebook,
     handleOpenRecentPath,
     handleSaveNotebook,
-    handleSaveAsNotebook
+    handleSaveAsNotebook,
+    handleImportAsNewPage,
+    handleImportIntoCurrentPage,
+    handleImportLibrary
   ])
 
   // Window title and dirty state synchronization
@@ -321,6 +432,13 @@ function Workspace(): React.JSX.Element {
           <button className="action-btn" onClick={handleSave} title="Save drawing as .excalidraw">
             Save .excalidraw
           </button>
+          <button
+            className="action-btn"
+            onClick={(): void => setIsExportOpen(true)}
+            title="Export page or notebook"
+          >
+            Export
+          </button>
           <button className="theme-toggle-btn" onClick={toggleTheme}>
             Theme: {theme === 'dark' ? 'Dark' : 'Light'}
           </button>
@@ -346,6 +464,13 @@ function Workspace(): React.JSX.Element {
         onNewNotebook={handleNewNotebook}
         onOpenNotebook={handleOpenNotebook}
         onOpenRecentPath={handleOpenRecentPath}
+      />
+
+      <ExportDialog
+        key={`${isExportOpen}-${exportFormat}`}
+        isOpen={isExportOpen}
+        initialFormat={exportFormat}
+        onClose={(): void => setIsExportOpen(false)}
       />
     </div>
   )
