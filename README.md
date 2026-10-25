@@ -91,6 +91,10 @@ InkBook is built with support for both modern Wayland compositors (Hyprland, Swa
   - Force Wayland: `inkbook --ozone-platform=wayland`
   - Force X11 / XWayland: `inkbook --ozone-platform=x11`
 
+### Arch Linux & AUR
+
+A template `PKGBUILD` and step-by-step submission guide are provided in [`packaging/arch/`](file:///home/sumit/Code/InkBook/packaging/arch/).
+
 ## License & Third-Party Notices
 
 See [NOTICE](file:///home/sumit/Code/InkBook/NOTICE) for third-party software notices and licensing information.
