@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useRef } from 'react'
-import { Excalidraw } from '@excalidraw/excalidraw'
+import { Excalidraw, CaptureUpdateAction } from '@excalidraw/excalidraw'
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 import '@excalidraw/excalidraw/index.css'
 import { useTheme } from '../context/ThemeContext'
@@ -59,8 +59,12 @@ export function ExcalidrawEditor(): React.JSX.Element {
             viewBackgroundColor: 'transparent',
             scrollX: targetPage.scene.appState.scrollX ?? 0,
             scrollY: targetPage.scene.appState.scrollY ?? 0
-          } as unknown as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['appState']
+          } as unknown as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['appState'],
+          captureUpdate: CaptureUpdateAction.NEVER
         })
+
+        // Isolate undo/redo history so edits on previous pages cannot be undone on the new page
+        excalidrawAPI.history.clear()
       }
     }
 
@@ -77,6 +81,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
         initialData={initialData}
         excalidrawAPI={(api): void => {
           setExcalidrawAPI(api)
+          api.history.clear()
         }}
       />
     </div>
