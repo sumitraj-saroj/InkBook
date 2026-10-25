@@ -1,10 +1,72 @@
+import { useState, useRef, useEffect, type MouseEvent, type KeyboardEvent } from 'react'
 import { useNotebookStore } from '../store/notebookStore'
+import { PageContextMenu, type ContextMenuPosition } from './PageContextMenu'
 
 export function Sidebar(): React.JSX.Element {
   const pages = useNotebookStore((s) => s.currentNotebook.pages)
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const setCurrentPage = useNotebookStore((s) => s.setCurrentPage)
   const addPage = useNotebookStore((s) => s.addPage)
+  const deletePage = useNotebookStore((s) => s.deletePage)
+  const renamePage = useNotebookStore((s) => s.renamePage)
+  const duplicatePage = useNotebookStore((s) => s.duplicatePage)
+  const reorderPages = useNotebookStore((s) => s.reorderPages)
+
+  const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null)
+  const [renamingPageId, setRenamingPageId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState<string>('')
+  const renameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (renamingPageId && renameInputRef.current) {
+      renameInputRef.current.focus()
+      renameInputRef.current.select()
+    }
+  }, [renamingPageId])
+
+  const handleStartRename = (pageId: string): void => {
+    const page = pages.find((p) => p.id === pageId)
+    if (!page) return
+    setRenameValue(page.title)
+    setRenamingPageId(pageId)
+  }
+
+  const handleCommitRename = (pageId: string): void => {
+    if (renameValue.trim()) {
+      renamePage(pageId, renameValue.trim())
+    }
+    setRenamingPageId(null)
+  }
+
+  const handleRenameKeyDown = (e: KeyboardEvent<HTMLInputElement>, pageId: string): void => {
+    if (e.key === 'Enter') {
+      handleCommitRename(pageId)
+    } else if (e.key === 'Escape') {
+      setRenamingPageId(null)
+    }
+  }
+
+  const handleOpenContextMenu = (e: MouseEvent, pageId: string, pageIndex: number): void => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      pageId,
+      pageIndex
+    })
+  }
+
+  const handleDeletePage = (pageId: string): void => {
+    if (pages.length <= 1) return
+    const targetPage = pages.find((p) => p.id === pageId)
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${targetPage?.title ?? 'this page'}"?`
+    )
+    if (confirmed) {
+      deletePage(pageId)
+    }
+  }
 
   return (
     <aside className="sidebar">
@@ -15,17 +77,54 @@ export function Sidebar(): React.JSX.Element {
       <div className="page-list" role="list">
         {pages.map((page, index) => {
           const isActive = page.id === currentPageId
+          const isRenaming = page.id === renamingPageId
+
           return (
             <div
               key={page.id}
               role="listitem"
               className={`page-item ${isActive ? 'active' : ''}`}
-              onClick={(): void => setCurrentPage(page.id)}
+              onClick={(): void => {
+                if (!isRenaming) {
+                  setCurrentPage(page.id)
+                }
+              }}
+              onContextMenu={(e): void => handleOpenContextMenu(e, page.id, index)}
             >
               <div className="page-label">
                 <span className="page-number">{index + 1}.</span>
-                <span className="page-title-text">{page.title}</span>
+                {isRenaming ? (
+                  <input
+                    ref={renameInputRef}
+                    type="text"
+                    className="page-rename-input"
+                    value={renameValue}
+                    onChange={(e): void => setRenameValue(e.target.value)}
+                    onBlur={(): void => handleCommitRename(page.id)}
+                    onKeyDown={(e): void => handleRenameKeyDown(e, page.id)}
+                    onClick={(e): void => e.stopPropagation()}
+                    maxLength={50}
+                  />
+                ) : (
+                  <span
+                    className="page-title-text"
+                    onDoubleClick={(): void => handleStartRename(page.id)}
+                  >
+                    {page.title}
+                  </span>
+                )}
               </div>
+
+              {!isRenaming && (
+                <button
+                  className="page-menu-trigger"
+                  title="Page options"
+                  aria-label="Page options"
+                  onClick={(e): void => handleOpenContextMenu(e, page.id, index)}
+                >
+                  •••
+                </button>
+              )}
             </div>
           )
         })}
@@ -48,6 +147,21 @@ export function Sidebar(): React.JSX.Element {
         <span>{pages.length} Pages</span>
         <span>A4 Portrait</span>
       </div>
+
+      {contextMenu && (
+        <PageContextMenu
+          position={contextMenu}
+          totalPages={pages.length}
+          onClose={(): void => setContextMenu(null)}
+          onRename={handleStartRename}
+          onDuplicate={(id): void => {
+            duplicatePage(id)
+          }}
+          onDelete={handleDeletePage}
+          onMoveUp={(idx): void => reorderPages(idx, idx - 1)}
+          onMoveDown={(idx): void => reorderPages(idx, idx + 1)}
+        />
+      )}
     </aside>
   )
 }
