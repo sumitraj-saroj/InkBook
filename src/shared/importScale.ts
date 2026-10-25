@@ -174,3 +174,29 @@ export function parseLibraryItems(jsonContent: string): unknown[] {
     return []
   }
 }
+
+/**
+ * Checks whether all non-deleted elements in the scene fit completely within
+ * the target page dimensions.
+ */
+export function checkElementsFitPage(
+  elements: readonly BoundedElement[],
+  newDims: { width: number; height: number },
+  tolerance = 0.5
+): boolean {
+  const visible = elements.filter((el) => !el.isDeleted)
+  if (visible.length === 0) return true
+
+  for (const el of visible) {
+    const b = getElementBounds(el)
+    if (
+      b.minX < -tolerance ||
+      b.minY < -tolerance ||
+      b.maxX > newDims.width + tolerance ||
+      b.maxY > newDims.height + tolerance
+    ) {
+      return false
+    }
+  }
+  return true
+}
