@@ -11,8 +11,10 @@ import { useEditor } from './context/EditorContext'
 import { EditorProvider } from './context/EditorProvider'
 import { useNotebookStore } from './store/notebookStore'
 import { calculatePageFit, getPageDimensions } from '@shared/index'
+import { useAutosave } from './hooks/useAutosave'
 
 function Workspace(): React.JSX.Element {
+  useAutosave()
   const { theme, toggleTheme } = useTheme()
   const { excalidrawAPI } = useEditor()
   const currentPageId = useNotebookStore((s) => s.currentPageId)
