@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, type MouseEvent, type KeyboardEvent } from 'react'
 import { useNotebookStore } from '../store/notebookStore'
 import { PageContextMenu, type ContextMenuPosition } from './PageContextMenu'
+import { PageThumbnail } from './PageThumbnail'
 
 export function Sidebar(): React.JSX.Element {
   const pages = useNotebookStore((s) => s.currentNotebook.pages)
@@ -127,28 +128,31 @@ export function Sidebar(): React.JSX.Element {
                 setDragOverIndex(null)
               }}
             >
-              <div className="page-label">
-                <span className="page-number">{index + 1}.</span>
-                {isRenaming ? (
-                  <input
-                    ref={renameInputRef}
-                    type="text"
-                    className="page-rename-input"
-                    value={renameValue}
-                    onChange={(e): void => setRenameValue(e.target.value)}
-                    onBlur={(): void => handleCommitRename(page.id)}
-                    onKeyDown={(e): void => handleRenameKeyDown(e, page.id)}
-                    onClick={(e): void => e.stopPropagation()}
-                    maxLength={50}
-                  />
-                ) : (
-                  <span
-                    className="page-title-text"
-                    onDoubleClick={(): void => handleStartRename(page.id)}
-                  >
-                    {page.title}
-                  </span>
-                )}
+              <div className="page-item-main">
+                <PageThumbnail page={page} className="sidebar-list-thumb" />
+                <div className="page-label">
+                  <span className="page-number">{index + 1}.</span>
+                  {isRenaming ? (
+                    <input
+                      ref={renameInputRef}
+                      type="text"
+                      className="page-rename-input"
+                      value={renameValue}
+                      onChange={(e): void => setRenameValue(e.target.value)}
+                      onBlur={(): void => handleCommitRename(page.id)}
+                      onKeyDown={(e): void => handleRenameKeyDown(e, page.id)}
+                      onClick={(e): void => e.stopPropagation()}
+                      maxLength={50}
+                    />
+                  ) : (
+                    <span
+                      className="page-title-text"
+                      onDoubleClick={(): void => handleStartRename(page.id)}
+                    >
+                      {page.title}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {!isRenaming && (

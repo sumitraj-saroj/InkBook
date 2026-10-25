@@ -14,7 +14,7 @@ export { drawPageBackgroundToCanvas, generateBackgroundSvgMarkup }
 export interface PngExportOptions {
   includeBackground?: boolean
   transparent?: boolean
-  scale?: 1 | 2 | 3
+  scale?: number
   theme?: 'dark' | 'light'
 }
 
