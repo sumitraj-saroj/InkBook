@@ -30,6 +30,7 @@ export function PageBackground({
 
   const clipId = 'page-paper-clip'
   const ruledPatternId = 'page-ruled-pattern'
+  const gridPatternId = 'page-grid-pattern'
 
   return (
     <svg
@@ -65,6 +66,23 @@ export function PageBackground({
             x2={pageDimensions.width}
             y2="0"
             stroke={colors.ruledLine}
+            strokeWidth={strokeWidth}
+          />
+        </pattern>
+
+        {/* Square grid pattern */}
+        <pattern
+          id={gridPatternId}
+          x="0"
+          y="0"
+          width={spacing}
+          height={spacing}
+          patternUnits="userSpaceOnUse"
+        >
+          <path
+            d={`M ${spacing} 0 L 0 0 0 ${spacing}`}
+            fill="none"
+            stroke={colors.gridLine}
             strokeWidth={strokeWidth}
           />
         </pattern>
@@ -112,6 +130,16 @@ export function PageBackground({
                 />
               )}
             </>
+          )}
+
+          {background === 'grid' && (
+            <rect
+              x="0"
+              y="0"
+              width={pageDimensions.width}
+              height={pageDimensions.height}
+              fill={`url(#${gridPatternId})`}
+            />
           )}
         </g>
       </g>
