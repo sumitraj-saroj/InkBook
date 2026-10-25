@@ -23,6 +23,7 @@ export interface CommandPaletteProps {
   onOpenExport: (format?: 'png' | 'svg' | 'excalidraw' | 'pdf') => void
   onOpenPageSettings: () => void
   onOpenShortcutsHelp: () => void
+  onOpenSearch: () => void
 }
 
 export function CommandPalette({
@@ -35,7 +36,8 @@ export function CommandPalette({
   onNewNotebook,
   onOpenExport,
   onOpenPageSettings,
-  onOpenShortcutsHelp
+  onOpenShortcutsHelp,
+  onOpenSearch
 }: CommandPaletteProps): React.JSX.Element | null {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -61,6 +63,14 @@ export function CommandPalette({
   // Build list of all available commands and page navigation targets
   const allActions = useMemo<CommandAction[]>(() => {
     const list: CommandAction[] = [
+      {
+        id: 'search-notebook',
+        title: 'Search Notebook (Titles & Text)...',
+        category: 'Navigation',
+        shortcut: 'Ctrl+F',
+        keywords: ['find', 'search', 'text', 'lookup', 'query'],
+        run: onOpenSearch
+      },
       {
         id: 'new-page',
         title: 'New Page',
@@ -210,7 +220,8 @@ export function CommandPalette({
     onNewNotebook,
     onOpenExport,
     onOpenPageSettings,
-    onOpenShortcutsHelp
+    onOpenShortcutsHelp,
+    onOpenSearch
   ])
 
   // Filter actions based on search query

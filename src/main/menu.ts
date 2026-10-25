@@ -164,7 +164,15 @@ export function setupApplicationMenu(): void {
         { role: 'cut' as const },
         { role: 'copy' as const },
         { role: 'paste' as const },
-        { role: 'selectAll' as const }
+        { role: 'selectAll' as const },
+        { type: 'separator' },
+        {
+          label: 'Find in Notebook...',
+          accelerator: 'CmdOrCtrl+F',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'search-notebook')
+          }
+        }
       ]
     },
     {

@@ -40,6 +40,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: 'Command & Quick Actions',
     items: [
       { keys: ['Ctrl', 'K'], description: 'Open command palette' },
+      { keys: ['Ctrl', 'F'], description: 'Search pages and text' },
       { keys: ['F1'], description: 'Open keyboard shortcuts help' },
       { keys: ['Escape'], description: 'Close modal / dismiss selection' }
     ]

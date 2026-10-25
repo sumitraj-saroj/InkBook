@@ -10,12 +10,13 @@ import { ExportDialog } from './components/ExportDialog'
 import { CommandPalette } from './components/CommandPalette'
 import { ShortcutsHelpDialog } from './components/ShortcutsHelpDialog'
 import { PageSettingsDialog } from './components/PageSettingsDialog'
+import { SearchDialog } from './components/SearchDialog'
 import { useTheme } from './context/ThemeContext'
 import { ThemeProvider } from './context/ThemeProvider'
 import { useEditor } from './context/EditorContext'
 import { EditorProvider } from './context/EditorProvider'
 import { useNotebookStore } from './store/notebookStore'
-import { calculatePageFit, getPageDimensions } from '@shared/index'
+import { calculatePageFit, getPageDimensions, type SearchResult } from '@shared/index'
 import { useAutosave } from './hooks/useAutosave'
 import { useRecovery } from './hooks/useRecovery'
 import {
@@ -48,6 +49,7 @@ function Workspace(): React.JSX.Element {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
   const [isPageSettingsOpen, setIsPageSettingsOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   const handleFitToWindow = useCallback((): void => {
     if (!excalidrawAPI) return
@@ -78,6 +80,37 @@ function Workspace(): React.JSX.Element {
       captureUpdate: CaptureUpdateAction.NEVER
     })
   }, [excalidrawAPI, currentNotebook.pages, currentPageId])
+
+  const handleSelectSearchResult = useCallback(
+    (result: SearchResult): void => {
+      setCurrentPage(result.pageId)
+      if (result.type === 'page') {
+        setTimeout(() => {
+          handleFitToWindow()
+        }, 30)
+      } else if (result.type === 'text' && result.elementId) {
+        setTimeout(() => {
+          if (excalidrawAPI) {
+            excalidrawAPI.updateScene({
+              appState: {
+                selectedElementIds: { [result.elementId!]: true }
+              } as unknown as Parameters<typeof excalidrawAPI.updateScene>[0]['appState'],
+              captureUpdate: CaptureUpdateAction.NEVER
+            })
+            const elements = excalidrawAPI.getSceneElements()
+            const targetEl = elements.find((el) => el.id === result.elementId)
+            if (targetEl) {
+              excalidrawAPI.scrollToContent([targetEl], {
+                fitToViewport: false,
+                animate: true
+              })
+            }
+          }
+        }, 50)
+      }
+    },
+    [setCurrentPage, handleFitToWindow, excalidrawAPI]
+  )
 
   const handleNextPage = useCallback((): void => {
     const currentIndex = currentNotebook.pages.findIndex((p) => p.id === currentPageId)
@@ -291,6 +324,9 @@ function Workspace(): React.JSX.Element {
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault()
         setIsCommandPaletteOpen((prev) => !prev)
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault()
+        setIsSearchOpen((prev) => !prev)
       }
     }
 
@@ -367,6 +403,9 @@ function Workspace(): React.JSX.Element {
           break
         case 'shortcuts-help':
           setIsShortcutsHelpOpen(true)
+          break
+        case 'search-notebook':
+          setIsSearchOpen(true)
           break
       }
     })
@@ -491,6 +530,13 @@ function Workspace(): React.JSX.Element {
           >
             Export
           </button>
+          <button
+            className="action-btn"
+            onClick={(): void => setIsSearchOpen(true)}
+            title="Search notebook pages and text (Ctrl+F)"
+          >
+            Search
+          </button>
           <button className="theme-toggle-btn" onClick={toggleTheme}>
             Theme: {theme === 'dark' ? 'Dark' : 'Light'}
           </button>
@@ -544,6 +590,16 @@ function Workspace(): React.JSX.Element {
         onOpenShortcutsHelp={(): void => {
           setIsShortcutsHelpOpen(true)
         }}
+        onOpenSearch={(): void => {
+          setIsSearchOpen(true)
+        }}
+      />
+
+      <SearchDialog
+        key={String(isSearchOpen)}
+        isOpen={isSearchOpen}
+        onClose={(): void => setIsSearchOpen(false)}
+        onSelectResult={handleSelectSearchResult}
       />
 
       <PageSettingsDialog
