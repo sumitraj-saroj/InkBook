@@ -90,7 +90,7 @@ export interface InkBookAPI {
   openNotebook: (filePath?: string) => Promise<OpenNotebookResult>
   saveNotebook: (notebook: Notebook, filePath?: string) => Promise<SaveNotebookResult>
   saveNotebookAs: (notebook: Notebook) => Promise<SaveNotebookResult>
-  onMenuAction: (callback: (action: string) => void) => () => void
+  onMenuAction: (callback: (action: string, payload?: unknown) => void) => () => void
   saveRecoveryCopy: (notebook: Notebook) => Promise<SaveNotebookResult>
   checkRecoveryCopy: () => Promise<Notebook | null>
   clearRecoveryCopy: () => Promise<boolean>
@@ -102,6 +102,7 @@ export interface InkBookAPI {
     format: 'excalidraw' | 'png' | 'svg'
   ) => Promise<{ success: boolean; error?: string }>
   getRecentFiles: () => Promise<string[]>
+  clearRecentFiles: () => Promise<boolean>
   openExcalidrawFile: () => Promise<OpenFileResult>
   saveExcalidrawFile: (content: string) => Promise<SaveFileResult>
 }

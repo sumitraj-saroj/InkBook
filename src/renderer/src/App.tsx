@@ -1,10 +1,11 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { serializeAsJSON, restore, CaptureUpdateAction } from '@excalidraw/excalidraw'
 import type { AppState } from '@excalidraw/excalidraw/types'
 import { ExcalidrawEditor } from './components/ExcalidrawEditor'
 import { NotebookTitle } from './components/NotebookTitle'
 import { Sidebar } from './components/Sidebar'
 import { BackgroundPicker } from './components/BackgroundPicker'
+import { WelcomeScreen } from './components/WelcomeScreen'
 import { useTheme } from './context/ThemeContext'
 import { ThemeProvider } from './context/ThemeProvider'
 import { useEditor } from './context/EditorContext'
@@ -27,6 +28,8 @@ function Workspace(): React.JSX.Element {
   const setCurrentNotebook = useNotebookStore((s) => s.setCurrentNotebook)
   const setFilePath = useNotebookStore((s) => s.setFilePath)
   const markClean = useNotebookStore((s) => s.markClean)
+
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(false)
 
   const handleFitToWindow = useCallback((): void => {
     if (!excalidrawAPI) return
@@ -84,6 +87,26 @@ function Workspace(): React.JSX.Element {
     }
     setCurrentNotebook(result.notebook, result.filePath ?? null)
   }, [isDirty, setCurrentNotebook])
+
+  const handleOpenRecentPath = useCallback(
+    async (path: string): Promise<void> => {
+      if (isDirty) {
+        const confirmDiscard = window.confirm(
+          'You have unsaved changes. Open another notebook anyway?'
+        )
+        if (!confirmDiscard) return
+      }
+      const result = await window.api.openNotebook(path)
+      if (result.canceled || !result.success || !result.notebook) {
+        if (result.error) {
+          alert(`Failed to open notebook: ${result.error}`)
+        }
+        return
+      }
+      setCurrentNotebook(result.notebook, result.filePath ?? null)
+    },
+    [isDirty, setCurrentNotebook]
+  )
 
   const handleSaveNotebook = useCallback(async (): Promise<void> => {
     const result = await window.api.saveNotebook(currentNotebook, filePath ?? undefined)
@@ -145,13 +168,24 @@ function Workspace(): React.JSX.Element {
 
   // Native Menu action listener
   useEffect(() => {
-    const unsubscribe = window.api.onMenuAction((action) => {
+    const unsubscribe = window.api.onMenuAction((action, payload) => {
       switch (action) {
         case 'new-notebook':
           handleNewNotebook()
           break
         case 'open-notebook':
           handleOpenNotebook()
+          break
+        case 'open-recent':
+          if (typeof payload === 'string') {
+            handleOpenRecentPath(payload).catch(console.error)
+          }
+          break
+        case 'show-welcome':
+          setIsWelcomeOpen(true)
+          break
+        case 'clear-recent':
+          window.api.clearRecentFiles().catch(console.error)
           break
         case 'save-notebook':
           handleSaveNotebook()
@@ -167,7 +201,13 @@ function Workspace(): React.JSX.Element {
     return (): void => {
       unsubscribe()
     }
-  }, [handleNewNotebook, handleOpenNotebook, handleSaveNotebook, handleSaveAsNotebook])
+  }, [
+    handleNewNotebook,
+    handleOpenNotebook,
+    handleOpenRecentPath,
+    handleSaveNotebook,
+    handleSaveAsNotebook
+  ])
 
   // Window title and dirty state synchronization
   useEffect(() => {
@@ -227,6 +267,13 @@ function Workspace(): React.JSX.Element {
           <NotebookTitle />
         </div>
         <div className="app-actions">
+          <button
+            className="action-btn"
+            onClick={(): void => setIsWelcomeOpen(true)}
+            title="Open Welcome screen"
+          >
+            Welcome
+          </button>
           <button className="action-btn" onClick={handleNewNotebook} title="New notebook (Ctrl+N)">
             New
           </button>
@@ -280,6 +327,14 @@ function Workspace(): React.JSX.Element {
           </div>
         </main>
       </div>
+
+      <WelcomeScreen
+        isOpen={isWelcomeOpen}
+        onClose={(): void => setIsWelcomeOpen(false)}
+        onNewNotebook={handleNewNotebook}
+        onOpenNotebook={handleOpenNotebook}
+        onOpenRecentPath={handleOpenRecentPath}
+      />
     </div>
   )
 }

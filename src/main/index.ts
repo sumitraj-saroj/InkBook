@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { setupApplicationMenu } from './menu'
+import { setupApplicationMenu, updateMenuRecentNotebooks } from './menu'
 import { handleOpenExcalidraw, handleSaveExcalidraw } from './fileManager'
 import {
   saveNotebookFile,
@@ -13,7 +13,7 @@ import {
   loadRecoveryCopy,
   clearRecoveryCopy
 } from './notebookService'
-import { getRecentNotebooks, addRecentNotebook } from './settingsService'
+import { getRecentNotebooks, addRecentNotebook, clearRecentNotebooks } from './settingsService'
 import type { Notebook } from '../shared/types'
 
 let mainWindowInstance: BrowserWindow | null = null
@@ -118,7 +118,8 @@ app.whenReady().then(() => {
       return { success: false, error: loaded.error, filePath: targetPath }
     }
 
-    await addRecentNotebook(targetPath)
+    const updatedRecents = await addRecentNotebook(targetPath)
+    updateMenuRecentNotebooks(updatedRecents)
     return { success: true, notebook: loaded.data, filePath: targetPath }
   })
 
@@ -138,7 +139,8 @@ app.whenReady().then(() => {
       return { success: false, error: saveResult.error, filePath: targetPath }
     }
 
-    await addRecentNotebook(targetPath)
+    const updatedRecents = await addRecentNotebook(targetPath)
+    updateMenuRecentNotebooks(updatedRecents)
     return { success: true, filePath: targetPath }
   })
 
@@ -154,7 +156,8 @@ app.whenReady().then(() => {
       return { success: false, error: saveResult.error, filePath: selected }
     }
 
-    await addRecentNotebook(selected)
+    const updatedRecents = await addRecentNotebook(selected)
+    updateMenuRecentNotebooks(updatedRecents)
     return { success: true, filePath: selected }
   })
 
@@ -197,6 +200,11 @@ app.whenReady().then(() => {
 
   ipcMain.handle('page:export', async (_event, _page, _format) => ({ success: true }))
   ipcMain.handle('notebook:recent', async () => getRecentNotebooks())
+  ipcMain.handle('notebook:clear-recent', async () => {
+    await clearRecentNotebooks()
+    updateMenuRecentNotebooks([])
+    return true
+  })
 
   // Excalidraw open/save IPC handlers
   ipcMain.handle('excalidraw:open', async (event) => {
@@ -209,6 +217,9 @@ app.whenReady().then(() => {
   })
 
   setupApplicationMenu()
+  getRecentNotebooks()
+    .then((recents) => updateMenuRecentNotebooks(recents))
+    .catch(console.error)
   createWindow()
 
   app.on('activate', function () {

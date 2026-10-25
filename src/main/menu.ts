@@ -1,12 +1,42 @@
 import { app, BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron'
 
-function sendMenuAction(window: BrowserWindow | undefined, action: string): void {
+let currentRecentNotebooks: string[] = []
+
+function sendMenuAction(
+  window: BrowserWindow | undefined,
+  action: string,
+  payload?: unknown
+): void {
   const win = window ?? BrowserWindow.getFocusedWindow() ?? undefined
-  win?.webContents.send('menu:action', action)
+  win?.webContents.send('menu:action', action, payload)
+}
+
+export function updateMenuRecentNotebooks(recentNotebooks: string[]): void {
+  currentRecentNotebooks = recentNotebooks
+  setupApplicationMenu()
 }
 
 export function setupApplicationMenu(): void {
   const isMac = process.platform === 'darwin'
+
+  const recentSubmenu: MenuItemConstructorOptions[] =
+    currentRecentNotebooks.length === 0
+      ? [{ label: 'No Recent Notebooks', enabled: false }]
+      : [
+          ...currentRecentNotebooks.map((filePath) => ({
+            label: filePath,
+            click: (_item: unknown, win: unknown): void => {
+              sendMenuAction(win as BrowserWindow | undefined, 'open-recent', filePath)
+            }
+          })),
+          { type: 'separator' as const },
+          {
+            label: 'Clear Recent Notebooks',
+            click: (_item: unknown, win: unknown): void => {
+              sendMenuAction(win as BrowserWindow | undefined, 'clear-recent')
+            }
+          }
+        ]
 
   const template: MenuItemConstructorOptions[] = [
     ...(isMac
@@ -44,6 +74,17 @@ export function setupApplicationMenu(): void {
             sendMenuAction(win as BrowserWindow | undefined, 'open-notebook')
           }
         },
+        {
+          label: 'Open Recent',
+          submenu: recentSubmenu
+        },
+        {
+          label: 'Welcome Screen',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'show-welcome')
+          }
+        },
+        { type: 'separator' },
         {
           label: 'Save Notebook',
           accelerator: 'CmdOrCtrl+S',

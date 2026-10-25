@@ -19,9 +19,13 @@ const api: InkBookAPI = {
   saveNotebookAs: async (notebook: Notebook): Promise<SaveNotebookResult> => {
     return ipcRenderer.invoke('notebook:save-as', notebook)
   },
-  onMenuAction: (callback: (action: string) => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, action: string): void => {
-      callback(action)
+  onMenuAction: (callback: (action: string, payload?: unknown) => void): (() => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      action: string,
+      payload?: unknown
+    ): void => {
+      callback(action, payload)
     }
     ipcRenderer.on('menu:action', listener)
     return (): void => {
@@ -60,6 +64,9 @@ const api: InkBookAPI = {
   },
   getRecentFiles: async (): Promise<string[]> => {
     return ipcRenderer.invoke('notebook:recent')
+  },
+  clearRecentFiles: async (): Promise<boolean> => {
+    return ipcRenderer.invoke('notebook:clear-recent')
   },
   openExcalidrawFile: async (): Promise<OpenFileResult> => {
     return ipcRenderer.invoke('excalidraw:open')
