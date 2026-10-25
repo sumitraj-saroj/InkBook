@@ -170,6 +170,14 @@ export function setupApplicationMenu(): void {
     {
       label: '&View',
       submenu: [
+        {
+          label: 'Command Palette...',
+          accelerator: 'CmdOrCtrl+K',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'command-palette')
+          }
+        },
+        { type: 'separator' },
         { role: 'reload' as const },
         { role: 'forceReload' as const },
         { role: 'toggleDevTools' as const },

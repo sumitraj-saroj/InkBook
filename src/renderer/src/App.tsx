@@ -7,6 +7,7 @@ import { Sidebar } from './components/Sidebar'
 import { BackgroundPicker } from './components/BackgroundPicker'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { ExportDialog } from './components/ExportDialog'
+import { CommandPalette } from './components/CommandPalette'
 import { useTheme } from './context/ThemeContext'
 import { ThemeProvider } from './context/ThemeProvider'
 import { useEditor } from './context/EditorContext'
@@ -40,6 +41,7 @@ function Workspace(): React.JSX.Element {
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<'png' | 'svg' | 'excalidraw' | 'pdf'>('png')
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
 
   const handleFitToWindow = useCallback((): void => {
     if (!excalidrawAPI) return
@@ -248,6 +250,9 @@ function Workspace(): React.JSX.Element {
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.code === 'KeyN')) {
         e.preventDefault()
         handleNewNotebook()
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault()
+        setIsCommandPaletteOpen((prev) => !prev)
       }
     }
 
@@ -315,6 +320,9 @@ function Workspace(): React.JSX.Element {
           break
         case 'close-notebook':
           handleNewNotebook()
+          break
+        case 'command-palette':
+          setIsCommandPaletteOpen(true)
           break
       }
     })
@@ -471,6 +479,27 @@ function Workspace(): React.JSX.Element {
         isOpen={isExportOpen}
         initialFormat={exportFormat}
         onClose={(): void => setIsExportOpen(false)}
+      />
+
+      <CommandPalette
+        key={String(isCommandPaletteOpen)}
+        isOpen={isCommandPaletteOpen}
+        onClose={(): void => setIsCommandPaletteOpen(false)}
+        onFitPage={handleFitToWindow}
+        onSaveNotebook={handleSaveNotebook}
+        onSaveAsNotebook={handleSaveAsNotebook}
+        onOpenNotebook={handleOpenNotebook}
+        onNewNotebook={handleNewNotebook}
+        onOpenExport={(format?: 'png' | 'svg' | 'excalidraw' | 'pdf'): void => {
+          if (format) setExportFormat(format)
+          setIsExportOpen(true)
+        }}
+        onOpenPageSettings={(): void => {
+          // Hooked in page settings commit
+        }}
+        onOpenShortcutsHelp={(): void => {
+          // Hooked in shortcuts commit
+        }}
       />
     </div>
   )
