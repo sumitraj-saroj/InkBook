@@ -4,7 +4,7 @@ import { promises as fs } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { setupApplicationMenu, updateMenuRecentNotebooks } from './menu'
-import { handleOpenExcalidraw, handleSaveExcalidraw } from './fileManager'
+import { handleOpenExcalidraw, handleSaveExcalidraw, handleOpenExcalidrawLib } from './fileManager'
 import {
   saveNotebookFile,
   loadNotebookFile,
@@ -276,6 +276,10 @@ app.whenReady().then(() => {
   ipcMain.handle('excalidraw:open', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
     return handleOpenExcalidraw(win)
+  })
+  ipcMain.handle('excalidraw:open-library', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    return handleOpenExcalidrawLib(win)
   })
   ipcMain.handle('excalidraw:save', async (event, content: string) => {
     const win = BrowserWindow.fromWebContents(event.sender) ?? undefined

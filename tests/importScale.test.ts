@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   getElementsCombinedBounds,
   scaleAndCenterElements,
-  regenerateElementIds
+  regenerateElementIds,
+  parseLibraryItems
 } from '../src/shared/importScale'
 import type { BoundedElement } from '../src/shared/pageBounds'
 
@@ -156,5 +157,32 @@ describe('importScale: regenerateElementIds', () => {
     expect(arrow.id).not.toBe('arrow1')
     expect(arrow.containerId).toBe(box.id)
     expect((box.boundElements as Array<{ id: string }>)[0]?.id).toBe(arrow.id)
+  })
+})
+
+describe('importScale: parseLibraryItems', () => {
+  it('extracts library items from an excalidrawlib wrapper object', () => {
+    const raw = JSON.stringify({
+      type: 'excalidrawlib',
+      version: 2,
+      libraryItems: [
+        { id: '1', status: 'published', elements: [{ type: 'rectangle' }] },
+        { id: '2', status: 'published', elements: [{ type: 'ellipse' }] }
+      ]
+    })
+
+    const items = parseLibraryItems(raw)
+    expect(items).toHaveLength(2)
+  })
+
+  it('extracts library items from a raw items array', () => {
+    const raw = JSON.stringify([[{ type: 'rectangle' }]])
+    const items = parseLibraryItems(raw)
+    expect(items).toHaveLength(1)
+  })
+
+  it('returns empty array on invalid json or unrecognized format', () => {
+    expect(parseLibraryItems('')).toEqual([])
+    expect(parseLibraryItems('{"notA": "library"}')).toEqual([])
   })
 })

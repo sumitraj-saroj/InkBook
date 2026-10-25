@@ -156,3 +156,21 @@ export function regenerateElementIds<T extends BoundedElement>(elements: readonl
     return cloned
   })
 }
+
+/**
+ * Safely extracts raw library items from an .excalidrawlib or JSON string.
+ */
+export function parseLibraryItems(jsonContent: string): unknown[] {
+  try {
+    const parsed = JSON.parse(jsonContent)
+    if (Array.isArray(parsed)) {
+      return parsed
+    }
+    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.libraryItems)) {
+      return parsed.libraryItems
+    }
+    return []
+  } catch {
+    return []
+  }
+}

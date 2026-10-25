@@ -79,6 +79,9 @@ const api: InkBookAPI = {
   openExcalidrawFile: async (): Promise<OpenFileResult> => {
     return ipcRenderer.invoke('excalidraw:open')
   },
+  openExcalidrawLibraryFile: async (): Promise<OpenFileResult> => {
+    return ipcRenderer.invoke('excalidraw:open-library')
+  },
   saveExcalidrawFile: async (content: string): Promise<SaveFileResult> => {
     return ipcRenderer.invoke('excalidraw:save', content)
   }

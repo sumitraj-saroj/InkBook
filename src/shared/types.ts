@@ -120,5 +120,6 @@ export interface InkBookAPI {
   clearRecentFiles: () => Promise<boolean>
   getInitialFile: () => Promise<string | null>
   openExcalidrawFile: () => Promise<OpenFileResult>
+  openExcalidrawLibraryFile: () => Promise<OpenFileResult>
   saveExcalidrawFile: (content: string) => Promise<SaveFileResult>
 }

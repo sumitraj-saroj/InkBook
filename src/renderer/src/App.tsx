@@ -15,7 +15,11 @@ import { useNotebookStore } from './store/notebookStore'
 import { calculatePageFit, getPageDimensions } from '@shared/index'
 import { useAutosave } from './hooks/useAutosave'
 import { useRecovery } from './hooks/useRecovery'
-import { importExcalidrawAsNewPage, importExcalidrawIntoCurrentPage } from './utils/importUtils'
+import {
+  importExcalidrawAsNewPage,
+  importExcalidrawIntoCurrentPage,
+  importExcalidrawLibrary
+} from './utils/importUtils'
 import type { BoundedElement } from '@shared/pageBounds'
 import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 
@@ -210,6 +214,21 @@ function Workspace(): React.JSX.Element {
     }
   }, [currentNotebook.pages, currentPageId, excalidrawAPI])
 
+  const handleImportLibrary = useCallback(async (): Promise<void> => {
+    if (!excalidrawAPI) return
+
+    const res = await window.api.openExcalidrawLibraryFile()
+    if (res.canceled || !res.content) return
+
+    try {
+      const count = await importExcalidrawLibrary(res.content, excalidrawAPI)
+      console.log(`Imported ${count} items into Excalidraw library.`)
+    } catch (err) {
+      console.error('Failed to import library:', err)
+      alert(`Failed to import library: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }, [excalidrawAPI])
+
   // Global shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -269,6 +288,9 @@ function Workspace(): React.JSX.Element {
         case 'import-current-page':
           handleImportIntoCurrentPage().catch(console.error)
           break
+        case 'import-library':
+          handleImportLibrary().catch(console.error)
+          break
         case 'export-png':
           setExportFormat('png')
           setIsExportOpen(true)
@@ -306,7 +328,8 @@ function Workspace(): React.JSX.Element {
     handleSaveNotebook,
     handleSaveAsNotebook,
     handleImportAsNewPage,
-    handleImportIntoCurrentPage
+    handleImportIntoCurrentPage,
+    handleImportLibrary
   ])
 
   // Window title and dirty state synchronization

@@ -1,9 +1,10 @@
-import { restore } from '@excalidraw/excalidraw'
-import type { BinaryFiles } from '@excalidraw/excalidraw/types'
+import { restore, restoreLibraryItems } from '@excalidraw/excalidraw'
+import type { BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 import {
   getPageDimensions,
   scaleAndCenterElements,
   regenerateElementIds,
+  parseLibraryItems,
   type BoundedElement,
   type Page
 } from '@shared/index'
@@ -112,4 +113,28 @@ export function importExcalidrawIntoCurrentPage(
     mergedElements,
     newFiles: restored.files
   }
+}
+
+/**
+ * Imports an .excalidrawlib file into Excalidraw's component library.
+ * Merges items into the existing library and opens the library menu.
+ */
+export async function importExcalidrawLibrary(
+  content: string,
+  api: ExcalidrawImperativeAPI
+): Promise<number> {
+  const rawItems = parseLibraryItems(content)
+  const restoredItems = restoreLibraryItems(
+    rawItems as Parameters<typeof restoreLibraryItems>[0],
+    'unpublished'
+  )
+
+  await api.updateLibrary({
+    libraryItems: restoredItems,
+    merge: true,
+    openLibraryMenu: true,
+    defaultStatus: 'unpublished'
+  })
+
+  return restoredItems.length
 }

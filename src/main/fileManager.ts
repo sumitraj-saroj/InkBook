@@ -66,6 +66,47 @@ export async function handleOpenExcalidraw(window?: BrowserWindow): Promise<Open
 }
 
 /**
+ * Displays native open dialog and reads the selected .excalidrawlib file.
+ */
+export async function handleOpenExcalidrawLib(window?: BrowserWindow): Promise<OpenFileResult> {
+  const result = await dialog.showOpenDialog(
+    window ?? (BrowserWindow.getFocusedWindow() || undefined)!,
+    {
+      title: 'Import Excalidraw Library',
+      filters: [
+        { name: 'Excalidraw Libraries', extensions: ['excalidrawlib', 'json'] },
+        { name: 'All Files', extensions: ['*'] }
+      ],
+      properties: ['openFile']
+    }
+  )
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return { canceled: true }
+  }
+
+  const selectedPath = result.filePaths[0]
+  if (!selectedPath) {
+    return { canceled: true }
+  }
+
+  try {
+    const content = await readUtf8File(selectedPath)
+    return {
+      canceled: false,
+      filePath: selectedPath,
+      content
+    }
+  } catch {
+    return {
+      canceled: false,
+      filePath: selectedPath,
+      content: undefined
+    }
+  }
+}
+
+/**
  * Displays native save dialog and atomically writes content to the selected path.
  */
 export async function handleSaveExcalidraw(
