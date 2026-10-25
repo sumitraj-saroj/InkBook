@@ -2,7 +2,12 @@ import { useState } from 'react'
 import { useNotebookStore } from '../store/notebookStore'
 import { useTheme } from '../context/ThemeContext'
 import { useEditor } from '../context/EditorContext'
-import { exportPageToPngDataUrl, type PngExportOptions } from '../utils/exportUtils'
+import {
+  exportPageToPngDataUrl,
+  exportPageToSvgString,
+  type PngExportOptions,
+  type SvgExportOptions
+} from '../utils/exportUtils'
 
 export interface ExportDialogProps {
   isOpen: boolean
@@ -61,6 +66,45 @@ export function ExportDialog({
           ],
           data: dataUrl,
           isBase64: true
+        })
+
+        if (result.canceled) {
+          setIsExporting(false)
+          return
+        }
+
+        if (!result.success) {
+          setError(result.error ?? 'Export failed')
+          setIsExporting(false)
+          return
+        }
+
+        onClose()
+      } else if (format === 'svg') {
+        const liveScene = excalidrawAPI
+          ? {
+              elements: excalidrawAPI.getSceneElements(),
+              files: excalidrawAPI.getFiles() as Record<string, unknown>,
+              appState: excalidrawAPI.getAppState() as Record<string, unknown>
+            }
+          : undefined
+
+        const options: SvgExportOptions = {
+          includeBackground,
+          transparent,
+          theme
+        }
+
+        const svgString = await exportPageToSvgString(activePage, options, liveScene)
+        const sanitizedTitle = activePage.title.replace(/[^a-zA-Z0-9_-]/g, '_')
+        const result = await window.api.exportFile({
+          defaultName: `${sanitizedTitle}.svg`,
+          filters: [
+            { name: 'SVG Images', extensions: ['svg'] },
+            { name: 'All Files', extensions: ['*'] }
+          ],
+          data: svgString,
+          isBase64: false
         })
 
         if (result.canceled) {
@@ -141,7 +185,7 @@ export function ExportDialog({
             </div>
           </div>
 
-          {format === 'png' && (
+          {(format === 'png' || format === 'svg') && (
             <div className="export-options-box">
               <div className="export-option-row">
                 <label className="export-checkbox-label">
@@ -165,21 +209,23 @@ export function ExportDialog({
                 </label>
               </div>
 
-              <div className="export-option-row">
-                <label className="export-sublabel">Resolution Scale</label>
-                <div className="export-scale-selector">
-                  {([1, 2, 3] as const).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      className={`scale-btn ${scale === s ? 'active' : ''}`}
-                      onClick={(): void => setScale(s)}
-                    >
-                      {s}x ({activePage.size.width * s} × {activePage.size.height * s}px)
-                    </button>
-                  ))}
+              {format === 'png' && (
+                <div className="export-option-row">
+                  <label className="export-sublabel">Resolution Scale</label>
+                  <div className="export-scale-selector">
+                    {([1, 2, 3] as const).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className={`scale-btn ${scale === s ? 'active' : ''}`}
+                        onClick={(): void => setScale(s)}
+                      >
+                        {s}x ({activePage.size.width * s} × {activePage.size.height * s}px)
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>

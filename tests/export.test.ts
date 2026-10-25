@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
-import { drawPageBackgroundToCanvas } from '../src/shared/backgroundCanvas'
+import {
+  drawPageBackgroundToCanvas,
+  generateBackgroundSvgMarkup
+} from '../src/shared/backgroundCanvas'
 import { BACKGROUND_CONFIG, getBackgroundColors } from '../src/shared/backgroundConfig'
 
 describe('Page export background canvas rendering', () => {
@@ -69,5 +72,31 @@ describe('Page export background canvas rendering', () => {
     expect(ctx.arc).toHaveBeenCalled()
     expect(ctx.fill).toHaveBeenCalled()
     expect(ctx.fillStyle).toBe(getBackgroundColors('dark').dot)
+  })
+
+  it('generates correct vector SVG markup for all backgrounds', () => {
+    // 1. Solid blank
+    const blankSvg = generateBackgroundSvgMarkup(794, 1123, 'blank', 'dark', false)
+    expect(blankSvg).toContain('<rect x="0" y="0" width="794" height="1123"')
+    expect(blankSvg).toContain(`fill="${getBackgroundColors('dark').paper}"`)
+
+    // 2. Transparent blank
+    const transparentSvg = generateBackgroundSvgMarkup(794, 1123, 'blank', 'dark', true)
+    expect(transparentSvg).toBe('')
+
+    // 3. Ruled SVG
+    const ruledSvg = generateBackgroundSvgMarkup(794, 1123, 'ruled', 'dark', false)
+    expect(ruledSvg).toContain('<line x1="0"')
+    expect(ruledSvg).toContain(`stroke="${getBackgroundColors('dark').ruledLine}"`)
+    expect(ruledSvg).toContain(`stroke="${getBackgroundColors('dark').ruledMarginLine}"`)
+
+    // 4. Grid SVG
+    const gridSvg = generateBackgroundSvgMarkup(794, 1123, 'grid', 'light', false)
+    expect(gridSvg).toContain(`stroke="${getBackgroundColors('light').gridLine}"`)
+
+    // 5. Dots SVG
+    const dotsSvg = generateBackgroundSvgMarkup(794, 1123, 'dots', 'dark', false)
+    expect(dotsSvg).toContain('<circle cx=')
+    expect(dotsSvg).toContain(`fill="${getBackgroundColors('dark').dot}"`)
   })
 })

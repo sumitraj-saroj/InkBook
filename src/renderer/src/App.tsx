@@ -204,6 +204,9 @@ function Workspace(): React.JSX.Element {
         case 'export-png':
           setIsExportOpen(true)
           break
+        case 'export-svg':
+          setIsExportOpen(true)
+          break
         case 'save-notebook':
           handleSaveNotebook()
           break

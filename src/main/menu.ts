@@ -106,6 +106,12 @@ export function setupApplicationMenu(): void {
             sendMenuAction(win as BrowserWindow | undefined, 'export-png')
           }
         },
+        {
+          label: 'Export Page as SVG...',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'export-svg')
+          }
+        },
         { type: 'separator' },
         {
           label: 'Close Notebook',

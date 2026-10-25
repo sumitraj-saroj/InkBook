@@ -1,13 +1,24 @@
-import { exportToCanvas } from '@excalidraw/excalidraw'
+import { exportToCanvas, exportToSvg } from '@excalidraw/excalidraw'
 import type { BinaryFiles } from '@excalidraw/excalidraw/types'
-import { getPageDimensions, drawPageBackgroundToCanvas, type Page } from '@shared/index'
+import {
+  getPageDimensions,
+  drawPageBackgroundToCanvas,
+  generateBackgroundSvgMarkup,
+  type Page
+} from '@shared/index'
 
-export { drawPageBackgroundToCanvas }
+export { drawPageBackgroundToCanvas, generateBackgroundSvgMarkup }
 
 export interface PngExportOptions {
   includeBackground?: boolean
   transparent?: boolean
   scale?: 1 | 2 | 3
+  theme?: 'dark' | 'light'
+}
+
+export interface SvgExportOptions {
+  includeBackground?: boolean
+  transparent?: boolean
   theme?: 'dark' | 'light'
 }
 
@@ -112,4 +123,79 @@ export async function exportPageToPngDataUrl(
 ): Promise<string> {
   const canvas = await renderPageToCanvas(page, options, liveScene)
   return canvas.toDataURL('image/png')
+}
+
+/**
+ * Exports an InkBook page as a complete SVG string, optionally embedding the vector page background.
+ */
+export async function exportPageToSvgString(
+  page: Page,
+  options: SvgExportOptions = {},
+  liveScene?: {
+    elements?: readonly unknown[]
+    files?: Record<string, unknown>
+    appState?: Record<string, unknown>
+  }
+): Promise<string> {
+  const { includeBackground = true, transparent = false, theme = 'dark' } = options
+  const dims = getPageDimensions(page)
+  const fullWidth = dims.width
+  const fullHeight = dims.height
+
+  const elements = (liveScene?.elements ?? page.scene.elements ?? []).filter(
+    (el) => !(el as Record<string, unknown>)['isDeleted']
+  )
+  const files = (liveScene?.files ?? page.scene.files ?? {}) as BinaryFiles
+  const appState = liveScene?.appState ?? page.scene.appState ?? {}
+
+  const frame = {
+    id: 'page-export-frame',
+    type: 'frame',
+    x: 0,
+    y: 0,
+    width: fullWidth,
+    height: fullHeight,
+    isDeleted: false
+  }
+
+  type ExportSvgArgs = Parameters<typeof exportToSvg>[0]
+
+  const svgElement = await exportToSvg({
+    elements: elements as ExportSvgArgs['elements'],
+    appState: {
+      ...appState,
+      exportBackground: false,
+      viewBackgroundColor: 'transparent',
+      exportWithDarkMode: theme === 'dark'
+    } as ExportSvgArgs['appState'],
+    files,
+    exportingFrame: frame as unknown as ExportSvgArgs['exportingFrame'],
+    exportPadding: 0
+  })
+
+  // Set explicit dimensions on SVG element
+  svgElement.setAttribute('width', `${fullWidth}`)
+  svgElement.setAttribute('height', `${fullHeight}`)
+  svgElement.setAttribute('viewBox', `0 0 ${fullWidth} ${fullHeight}`)
+
+  let svgString = new XMLSerializer().serializeToString(svgElement)
+
+  if (includeBackground || !transparent) {
+    const bgMarkup = generateBackgroundSvgMarkup(
+      fullWidth,
+      fullHeight,
+      includeBackground ? page.background : 'blank',
+      theme,
+      transparent
+    )
+    const insertPos = svgString.indexOf('>') + 1
+    if (insertPos > 0) {
+      svgString =
+        svgString.slice(0, insertPos) +
+        `\n<g id="inkbook-page-background">\n${bgMarkup}</g>\n` +
+        svgString.slice(insertPos)
+    }
+  }
+
+  return svgString
 }
