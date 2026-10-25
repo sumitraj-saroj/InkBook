@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { ExcalidrawEditor } from './components/ExcalidrawEditor'
+import { useTheme } from './context/ThemeContext'
+import { ThemeProvider } from './context/ThemeProvider'
 
 interface MockPage {
   id: string
@@ -7,7 +9,8 @@ interface MockPage {
   background: 'blank' | 'ruled' | 'grid' | 'dotted'
 }
 
-function App(): React.JSX.Element {
+function Workspace(): React.JSX.Element {
+  const { theme, toggleTheme } = useTheme()
   const [pages] = useState<MockPage[]>([
     { id: 'page-1', title: 'Page 1', background: 'ruled' },
     { id: 'page-2', title: 'Page 2', background: 'grid' }
@@ -18,7 +21,7 @@ function App(): React.JSX.Element {
   const activePage = pages.find((p) => p.id === activePageId) ?? pages[0]
 
   return (
-    <div className="app-container">
+    <div className="app-container" data-theme={theme}>
       {/* Top Bar: Notebook title at top-left */}
       <header className="topbar">
         <div className="notebook-meta">
@@ -27,7 +30,9 @@ function App(): React.JSX.Element {
           <span className="page-indicator">• {activePage?.title ?? 'Page 1'}</span>
         </div>
         <div className="app-actions">
-          <span>Dark Theme</span>
+          <button className="theme-toggle-btn" onClick={toggleTheme}>
+            Theme: {theme === 'dark' ? 'Dark' : 'Light'}
+          </button>
         </div>
       </header>
 
@@ -78,6 +83,14 @@ function App(): React.JSX.Element {
         </main>
       </div>
     </div>
+  )
+}
+
+function App(): React.JSX.Element {
+  return (
+    <ThemeProvider>
+      <Workspace />
+    </ThemeProvider>
   )
 }
 
