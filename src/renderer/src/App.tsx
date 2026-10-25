@@ -30,7 +30,7 @@ import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 function Workspace(): React.JSX.Element {
   useAutosave()
   useRecovery()
-  const { theme, toggleTheme } = useTheme()
+  const { theme, themePreference, toggleTheme } = useTheme()
   const { excalidrawAPI } = useEditor()
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const currentNotebook = useNotebookStore((s) => s.currentNotebook)
@@ -537,8 +537,17 @@ function Workspace(): React.JSX.Element {
           >
             Search
           </button>
-          <button className="theme-toggle-btn" onClick={toggleTheme}>
-            Theme: {theme === 'dark' ? 'Dark' : 'Light'}
+          <button
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            title={`Theme preference: ${themePreference === 'system' ? `System (${theme})` : themePreference} (Click to cycle)`}
+          >
+            Theme:{' '}
+            {themePreference === 'system'
+              ? `System (${theme === 'dark' ? 'Dark' : 'Light'})`
+              : theme === 'dark'
+                ? 'Dark'
+                : 'Light'}
           </button>
         </div>
       </header>

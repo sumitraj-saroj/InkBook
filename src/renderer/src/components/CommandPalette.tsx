@@ -44,7 +44,7 @@ export function CommandPalette({
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  const { toggleTheme } = useTheme()
+  const { toggleTheme, setThemePreference } = useTheme()
   const pages = useNotebookStore((s) => s.currentNotebook.pages)
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const setCurrentPage = useNotebookStore((s) => s.setCurrentPage)
@@ -130,10 +130,31 @@ export function CommandPalette({
       },
       {
         id: 'toggle-theme',
-        title: 'Toggle Dark / Light Theme',
+        title: 'Toggle Theme (Cycle System / Light / Dark)',
         category: 'Theme',
-        keywords: ['dark', 'light', 'mode', 'color'],
+        keywords: ['dark', 'light', 'mode', 'color', 'system'],
         run: toggleTheme
+      },
+      {
+        id: 'theme-system',
+        title: 'Set Theme: System Default',
+        category: 'Theme',
+        keywords: ['os', 'auto', 'default'],
+        run: () => setThemePreference('system')
+      },
+      {
+        id: 'theme-dark',
+        title: 'Set Theme: Dark',
+        category: 'Theme',
+        keywords: ['black', 'night'],
+        run: () => setThemePreference('dark')
+      },
+      {
+        id: 'theme-light',
+        title: 'Set Theme: Light',
+        category: 'Theme',
+        keywords: ['white', 'day'],
+        run: () => setThemePreference('light')
       },
       {
         id: 'shortcuts-help',
@@ -213,6 +234,7 @@ export function CommandPalette({
     setCurrentPage,
     setPageBackground,
     toggleTheme,
+    setThemePreference,
     onFitPage,
     onSaveNotebook,
     onSaveAsNotebook,

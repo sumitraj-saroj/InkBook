@@ -1,10 +1,20 @@
 import { createContext, useContext } from 'react'
+import type { ThemePreference, ResolvedTheme } from '@shared/index'
 
-export type AppTheme = 'dark' | 'light'
+export type AppTheme = ResolvedTheme
 
 export interface ThemeContextValue {
-  theme: AppTheme
+  /** The user's chosen preference: 'system' | 'dark' | 'light' */
+  themePreference: ThemePreference
+  /** The actively rendered theme: 'dark' | 'light' */
+  resolvedTheme: ResolvedTheme
+  /** Alias for resolvedTheme for backward compatibility */
+  theme: ResolvedTheme
+  /** Sets the theme preference */
+  setThemePreference: (pref: ThemePreference) => void
+  /** Direct setter (legacy support) */
   setTheme: (theme: AppTheme) => void
+  /** Cycles through system -> light -> dark */
   toggleTheme: () => void
 }
 
