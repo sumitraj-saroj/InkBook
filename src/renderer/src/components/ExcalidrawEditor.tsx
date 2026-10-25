@@ -31,6 +31,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
 
   const containerRef = useRef<HTMLDivElement>(null)
   const activePageIdRef = useRef<string>(currentPageId)
+  const currentNotebookIdRef = useRef<string>(currentNotebook.id)
   const isSwitchingRef = useRef<boolean>(false)
   const isClampingRef = useRef<boolean>(false)
   const lastValidElementsRef = useRef<readonly BoundedElement[]>([])
@@ -197,10 +198,12 @@ export function ExcalidrawEditor(): React.JSX.Element {
 
   // Handle page transitions: save previous page scene, then load target page scene
   useEffect(() => {
+    const isDifferentNotebook = currentNotebookIdRef.current !== currentNotebook.id
+    currentNotebookIdRef.current = currentNotebook.id
     const prevPageId = activePageIdRef.current
-    if (prevPageId === currentPageId) return
+    if (prevPageId === currentPageId && !isDifferentNotebook) return
 
-    if (excalidrawAPI && prevPageId) {
+    if (excalidrawAPI) {
       isSwitchingRef.current = true
 
       // Cancel any pending debounced save for the old page
@@ -209,12 +212,14 @@ export function ExcalidrawEditor(): React.JSX.Element {
         debounceTimerRef.current = null
       }
 
-      // 1. Immediately save current scene of the previous page
-      const elements = excalidrawAPI.getSceneElements()
-      const appState = excalidrawAPI.getAppState()
-      const files = excalidrawAPI.getFiles()
+      // 1. Immediately save current scene of the previous page if within same notebook
+      if (!isDifferentNotebook && prevPageId) {
+        const elements = excalidrawAPI.getSceneElements()
+        const appState = excalidrawAPI.getAppState()
+        const files = excalidrawAPI.getFiles()
 
-      updatePageScene(prevPageId, { elements, appState, files })
+        updatePageScene(prevPageId, { elements, appState, files })
+      }
 
       // 2. Load the target page scene
       const notebook = useNotebookStore.getState().currentNotebook
@@ -232,12 +237,12 @@ export function ExcalidrawEditor(): React.JSX.Element {
           ExcalidrawImperativeAPI['updateScene']
         >[0]['elements']
 
-        const pageDims = getPageDimensions(targetPage)
+        const targetDims = getPageDimensions(targetPage)
         const vpW = containerRef.current?.clientWidth || 1000
         const vpH = containerRef.current?.clientHeight || 800
         const fit = calculatePageFit({
-          pageWidth: pageDims.width,
-          pageHeight: pageDims.height,
+          pageWidth: targetDims.width,
+          pageHeight: targetDims.height,
           viewportWidth: vpW,
           viewportHeight: vpH,
           padding: 48
@@ -278,7 +283,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
     }
 
     activePageIdRef.current = currentPageId
-  }, [currentPageId, excalidrawAPI, updatePageScene])
+  }, [currentNotebook.id, currentPageId, excalidrawAPI, updatePageScene])
 
   return (
     <div

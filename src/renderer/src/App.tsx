@@ -17,6 +17,12 @@ function Workspace(): React.JSX.Element {
   const { excalidrawAPI } = useEditor()
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const currentNotebook = useNotebookStore((s) => s.currentNotebook)
+  const filePath = useNotebookStore((s) => s.filePath)
+  const isDirty = useNotebookStore((s) => s.isDirty)
+  const newNotebook = useNotebookStore((s) => s.newNotebook)
+  const setCurrentNotebook = useNotebookStore((s) => s.setCurrentNotebook)
+  const setFilePath = useNotebookStore((s) => s.setFilePath)
+  const markClean = useNotebookStore((s) => s.markClean)
 
   const handleFitToWindow = useCallback((): void => {
     if (!excalidrawAPI) return
@@ -48,18 +54,116 @@ function Workspace(): React.JSX.Element {
     })
   }, [excalidrawAPI, currentNotebook.pages, currentPageId])
 
-  // Global Ctrl+0 shortcut to fit page to window
+  const handleNewNotebook = useCallback((): void => {
+    if (isDirty) {
+      const confirmDiscard = window.confirm(
+        'You have unsaved changes. Create a new notebook anyway?'
+      )
+      if (!confirmDiscard) return
+    }
+    newNotebook()
+  }, [isDirty, newNotebook])
+
+  const handleOpenNotebook = useCallback(async (): Promise<void> => {
+    if (isDirty) {
+      const confirmDiscard = window.confirm(
+        'You have unsaved changes. Open another notebook anyway?'
+      )
+      if (!confirmDiscard) return
+    }
+    const result = await window.api.openNotebook()
+    if (result.canceled || !result.success || !result.notebook) {
+      if (result.error) {
+        alert(`Failed to open notebook: ${result.error}`)
+      }
+      return
+    }
+    setCurrentNotebook(result.notebook, result.filePath ?? null)
+  }, [isDirty, setCurrentNotebook])
+
+  const handleSaveNotebook = useCallback(async (): Promise<void> => {
+    const result = await window.api.saveNotebook(currentNotebook, filePath ?? undefined)
+    if (result.canceled) return
+    if (!result.success) {
+      alert(`Failed to save notebook: ${result.error}`)
+      return
+    }
+    if (result.filePath) {
+      setFilePath(result.filePath)
+    }
+    markClean()
+  }, [currentNotebook, filePath, setFilePath, markClean])
+
+  const handleSaveAsNotebook = useCallback(async (): Promise<void> => {
+    const result = await window.api.saveNotebookAs(currentNotebook)
+    if (result.canceled) return
+    if (!result.success) {
+      alert(`Failed to save notebook: ${result.error}`)
+      return
+    }
+    if (result.filePath) {
+      setFilePath(result.filePath)
+    }
+    markClean()
+  }, [currentNotebook, setFilePath, markClean])
+
+  // Global shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
       if ((e.ctrlKey || e.metaKey) && (e.key === '0' || e.code === 'Digit0')) {
         e.preventDefault()
         handleFitToWindow()
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault()
+        if (e.shiftKey) {
+          handleSaveAsNotebook()
+        } else {
+          handleSaveNotebook()
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'o' || e.code === 'KeyO')) {
+        e.preventDefault()
+        handleOpenNotebook()
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.code === 'KeyN')) {
+        e.preventDefault()
+        handleNewNotebook()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return (): void => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleFitToWindow])
+  }, [
+    handleFitToWindow,
+    handleSaveNotebook,
+    handleSaveAsNotebook,
+    handleOpenNotebook,
+    handleNewNotebook
+  ])
+
+  // Native Menu action listener
+  useEffect(() => {
+    const unsubscribe = window.api.onMenuAction((action) => {
+      switch (action) {
+        case 'new-notebook':
+          handleNewNotebook()
+          break
+        case 'open-notebook':
+          handleOpenNotebook()
+          break
+        case 'save-notebook':
+          handleSaveNotebook()
+          break
+        case 'save-as-notebook':
+          handleSaveAsNotebook()
+          break
+        case 'close-notebook':
+          handleNewNotebook()
+          break
+      }
+    })
+    return (): void => {
+      unsubscribe()
+    }
+  }, [handleNewNotebook, handleOpenNotebook, handleSaveNotebook, handleSaveAsNotebook])
 
   const handleOpen = async (): Promise<void> => {
     if (!excalidrawAPI) return
@@ -101,6 +205,23 @@ function Workspace(): React.JSX.Element {
           <NotebookTitle />
         </div>
         <div className="app-actions">
+          <button className="action-btn" onClick={handleNewNotebook} title="New notebook (Ctrl+N)">
+            New
+          </button>
+          <button
+            className="action-btn"
+            onClick={handleOpenNotebook}
+            title="Open notebook (Ctrl+O)"
+          >
+            Open
+          </button>
+          <button
+            className="action-btn"
+            onClick={handleSaveNotebook}
+            title={`Save notebook (Ctrl+S)${isDirty ? ' •' : ''}`}
+          >
+            Save{isDirty ? ' •' : ''}
+          </button>
           <BackgroundPicker />
           <button
             className="action-btn"

@@ -3,17 +3,30 @@ import type {
   InkBookAPI,
   Notebook,
   OpenFileResult,
+  OpenNotebookResult,
   Page,
   SaveFileResult,
   SaveNotebookResult
 } from '@shared/types'
 
 const api: InkBookAPI = {
-  openNotebook: async (filePath?: string): Promise<Notebook | null> => {
+  openNotebook: async (filePath?: string): Promise<OpenNotebookResult> => {
     return ipcRenderer.invoke('notebook:open', filePath)
   },
   saveNotebook: async (notebook: Notebook, filePath?: string): Promise<SaveNotebookResult> => {
     return ipcRenderer.invoke('notebook:save', notebook, filePath)
+  },
+  saveNotebookAs: async (notebook: Notebook): Promise<SaveNotebookResult> => {
+    return ipcRenderer.invoke('notebook:save-as', notebook)
+  },
+  onMenuAction: (callback: (action: string) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, action: string): void => {
+      callback(action)
+    }
+    ipcRenderer.on('menu:action', listener)
+    return (): void => {
+      ipcRenderer.removeListener('menu:action', listener)
+    }
   },
   exportPage: async (
     page: Page,

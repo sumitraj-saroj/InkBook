@@ -59,7 +59,16 @@ export interface Notebook {
   pages: Page[]
 }
 
+export interface OpenNotebookResult {
+  canceled?: boolean
+  success: boolean
+  notebook?: Notebook
+  filePath?: string
+  error?: string
+}
+
 export interface SaveNotebookResult {
+  canceled?: boolean
   success: boolean
   filePath?: string
   error?: string
@@ -78,8 +87,10 @@ export interface SaveFileResult {
 }
 
 export interface InkBookAPI {
-  openNotebook: (filePath?: string) => Promise<Notebook | null>
+  openNotebook: (filePath?: string) => Promise<OpenNotebookResult>
   saveNotebook: (notebook: Notebook, filePath?: string) => Promise<SaveNotebookResult>
+  saveNotebookAs: (notebook: Notebook) => Promise<SaveNotebookResult>
+  onMenuAction: (callback: (action: string) => void) => () => void
   exportPage: (
     page: Page,
     format: 'excalidraw' | 'png' | 'svg'

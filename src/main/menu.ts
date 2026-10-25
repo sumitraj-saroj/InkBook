@@ -1,4 +1,9 @@
-import { app, Menu, MenuItemConstructorOptions } from 'electron'
+import { app, BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron'
+
+function sendMenuAction(window: BrowserWindow | undefined, action: string): void {
+  const win = window ?? BrowserWindow.getFocusedWindow() ?? undefined
+  win?.webContents.send('menu:action', action)
+}
 
 export function setupApplicationMenu(): void {
   const isMac = process.platform === 'darwin'
@@ -28,29 +33,37 @@ export function setupApplicationMenu(): void {
         {
           label: 'New Notebook',
           accelerator: 'CmdOrCtrl+N',
-          click: (): void => {
-            // Placeholder for Phase 2/3: New Notebook action
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'new-notebook')
           }
         },
         {
           label: 'Open Notebook...',
           accelerator: 'CmdOrCtrl+O',
-          click: (): void => {
-            // Placeholder for Phase 3: Open Notebook action
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'open-notebook')
           }
         },
         {
           label: 'Save Notebook',
           accelerator: 'CmdOrCtrl+S',
-          click: (): void => {
-            // Placeholder for Phase 3: Save Notebook action
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'save-notebook')
           }
         },
         {
           label: 'Save As...',
           accelerator: 'CmdOrCtrl+Shift+S',
-          click: (): void => {
-            // Placeholder for Phase 3: Save As Notebook action
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'save-as-notebook')
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Close Notebook',
+          accelerator: 'CmdOrCtrl+W',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'close-notebook')
           }
         },
         { type: 'separator' },

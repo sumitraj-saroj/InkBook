@@ -4,6 +4,13 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { setupApplicationMenu } from './menu'
 import { handleOpenExcalidraw, handleSaveExcalidraw } from './fileManager'
+import {
+  saveNotebookFile,
+  loadNotebookFile,
+  showOpenNotebookDialog,
+  showSaveNotebookDialog
+} from './notebookService'
+import type { Notebook } from '../shared/types'
 
 function createWindow(): void {
   // Create the browser window.
@@ -56,12 +63,60 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  // Placeholder IPC handlers for notebook operations
-  ipcMain.handle('notebook:open', async (_event, _filePath) => null)
-  ipcMain.handle('notebook:save', async (_event, _notebook, filePath) => ({
-    success: true,
-    filePath
-  }))
+  // IPC handlers for notebook operations
+  ipcMain.handle('notebook:open', async (event, filePath?: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    let targetPath = filePath
+    if (!targetPath) {
+      const selected = await showOpenNotebookDialog(win)
+      if (!selected) {
+        return { canceled: true, success: false }
+      }
+      targetPath = selected
+    }
+
+    const loaded = await loadNotebookFile(targetPath)
+    if (!loaded.success || !loaded.data) {
+      return { success: false, error: loaded.error, filePath: targetPath }
+    }
+
+    return { success: true, notebook: loaded.data, filePath: targetPath }
+  })
+
+  ipcMain.handle('notebook:save', async (event, notebook: Notebook, filePath?: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    let targetPath = filePath
+    if (!targetPath) {
+      const selected = await showSaveNotebookDialog(win, notebook.name)
+      if (!selected) {
+        return { canceled: true, success: false }
+      }
+      targetPath = selected
+    }
+
+    const saveResult = await saveNotebookFile(notebook, targetPath)
+    if (!saveResult.success) {
+      return { success: false, error: saveResult.error, filePath: targetPath }
+    }
+
+    return { success: true, filePath: targetPath }
+  })
+
+  ipcMain.handle('notebook:save-as', async (event, notebook: Notebook) => {
+    const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    const selected = await showSaveNotebookDialog(win, notebook.name)
+    if (!selected) {
+      return { canceled: true, success: false }
+    }
+
+    const saveResult = await saveNotebookFile(notebook, selected)
+    if (!saveResult.success) {
+      return { success: false, error: saveResult.error, filePath: selected }
+    }
+
+    return { success: true, filePath: selected }
+  })
+
   ipcMain.handle('page:export', async (_event, _page, _format) => ({ success: true }))
   ipcMain.handle('notebook:recent', async () => [])
 

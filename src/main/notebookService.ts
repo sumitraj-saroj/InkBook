@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import { dirname, join } from 'path'
 import { randomBytes } from 'crypto'
+import { dialog, BrowserWindow } from 'electron'
 import { migrateAndValidateNotebook } from '../shared/migration'
 import { validateNotebook } from '../shared/schema'
 import type { Notebook, SaveNotebookResult } from '../shared/types'
@@ -9,6 +10,50 @@ export interface LoadNotebookResult {
   success: boolean
   data?: Notebook
   error?: string
+}
+
+/**
+ * Prompts native open dialog with *.inkbook filter.
+ */
+export async function showOpenNotebookDialog(window?: BrowserWindow): Promise<string | null> {
+  const targetWin = window ?? BrowserWindow.getFocusedWindow() ?? undefined
+  const result = await dialog.showOpenDialog(targetWin!, {
+    title: 'Open InkBook Notebook',
+    filters: [
+      { name: 'InkBook Notebooks', extensions: ['inkbook'] },
+      { name: 'All Files', extensions: ['*'] }
+    ],
+    properties: ['openFile']
+  })
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null
+  }
+  return result.filePaths[0] ?? null
+}
+
+/**
+ * Prompts native save dialog with *.inkbook filter.
+ */
+export async function showSaveNotebookDialog(
+  window?: BrowserWindow,
+  defaultName = 'Untitled.inkbook'
+): Promise<string | null> {
+  const targetWin = window ?? BrowserWindow.getFocusedWindow() ?? undefined
+  const filename = defaultName.endsWith('.inkbook') ? defaultName : `${defaultName}.inkbook`
+  const result = await dialog.showSaveDialog(targetWin!, {
+    title: 'Save InkBook Notebook',
+    defaultPath: filename,
+    filters: [
+      { name: 'InkBook Notebooks', extensions: ['inkbook'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  })
+
+  if (result.canceled || !result.filePath) {
+    return null
+  }
+  return result.filePath
 }
 
 /**

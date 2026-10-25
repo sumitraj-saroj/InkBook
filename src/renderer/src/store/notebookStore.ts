@@ -55,11 +55,13 @@ export function createDefaultNotebook(name: string = 'Untitled Notebook'): Noteb
 export interface NotebookState {
   currentNotebook: Notebook
   currentPageId: string
+  filePath: string | null
   isDirty: boolean
 
   // Actions
   newNotebook: (name?: string) => void
-  setCurrentNotebook: (notebook: Notebook) => void
+  setCurrentNotebook: (notebook: Notebook, filePath?: string | null) => void
+  setFilePath: (filePath: string | null) => void
   renameNotebook: (name: string) => void
   addPage: (preset?: PagePreset, orientation?: PageOrientation, background?: PageBackground) => Page
   duplicatePage: (pageId: string) => Page | null
@@ -84,6 +86,7 @@ const initialNotebook = createDefaultNotebook()
 export const useNotebookStore = create<NotebookState>((set, get) => ({
   currentNotebook: initialNotebook,
   currentPageId: initialNotebook.pages[0]?.id ?? '',
+  filePath: null,
   isDirty: false,
 
   newNotebook: (name?: string): void => {
@@ -91,16 +94,22 @@ export const useNotebookStore = create<NotebookState>((set, get) => ({
     set({
       currentNotebook: notebook,
       currentPageId: notebook.pages[0]?.id ?? '',
+      filePath: null,
       isDirty: false
     })
   },
 
-  setCurrentNotebook: (notebook: Notebook): void => {
+  setCurrentNotebook: (notebook: Notebook, filePath?: string | null): void => {
     set({
       currentNotebook: notebook,
       currentPageId: notebook.pages[0]?.id ?? '',
+      filePath: filePath !== undefined ? filePath : null,
       isDirty: false
     })
+  },
+
+  setFilePath: (filePath: string | null): void => {
+    set({ filePath })
   },
 
   renameNotebook: (name: string): void => {
