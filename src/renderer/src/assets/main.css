@@ -233,6 +233,7 @@ body,
   color: var(--text-primary);
   border-color: var(--accent);
   font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .page-label {
@@ -240,6 +241,25 @@ body,
   align-items: center;
   gap: 8px;
   font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-number {
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 18px;
+}
+
+.page-item.active .page-number {
+  color: var(--accent);
+}
+
+.page-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .page-index {
