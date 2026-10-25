@@ -299,6 +299,27 @@ describe('pageBounds', () => {
       expect(isInsidePage(getElementBounds(first), a4Page)).toBe(true)
     })
 
+    it('shifts all elements uniformly when dragged as a group or multi-selection', () => {
+      const prev: BoundedElement[] = [
+        { id: '1', type: 'rectangle', x: 500, y: 100, width: 80, height: 80 },
+        { id: '2', type: 'rectangle', x: 600, y: 100, width: 80, height: 80 }
+      ]
+      // Both elements dragged right by 150px: element 2 crosses edge (750 + 80 = 830 > 794)
+      const moved: BoundedElement[] = [
+        { ...prev[0]!, x: 650 },
+        { ...prev[1]!, x: 750 }
+      ]
+      const clamped = clampElementsToPage(moved, a4Page, prev)
+      const el1 = clamped[0]!
+      const el2 = clamped[1]!
+      // Group width is (750 + 80) - 650 = 180. To fit within 794, shift is 794 - 830 = -36
+      // el2.x becomes 750 - 36 = 714 (714 + 80 = 794)
+      // el1.x becomes 650 - 36 = 614, preserving the 100px relative distance!
+      expect(el2.x).toBe(714)
+      expect(el1.x).toBe(614)
+      expect(el2.x - el1.x).toBe(100)
+    })
+
     it('ignores deleted elements', () => {
       const deleted: BoundedElement = {
         id: '1',

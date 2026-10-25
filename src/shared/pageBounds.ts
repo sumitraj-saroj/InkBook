@@ -316,7 +316,22 @@ export function clampElementToPage<T extends BoundedElement>(
     }
   }
 
-  // 4. If previous valid state exists, revert to it
+  // 4. Handle rotated element that cannot fit: revert rotation angle or dimensions to previous
+  if (element.angle && previousElement && !previousElement.isDeleted) {
+    // If only rotation or resize changed, try keeping position but reverting angle
+    const revertedAngle: T = {
+      ...element,
+      angle: previousElement.angle ?? 0,
+      version: (element.version ?? 0) + 1,
+      versionNonce: Math.floor(Math.random() * 2000000000)
+    }
+    const angleBounds = getElementBounds(revertedAngle)
+    if (isInsidePage(angleBounds, dims)) {
+      return revertedAngle
+    }
+  }
+
+  // 5. If previous valid state exists, revert to it
   if (previousElement && !previousElement.isDeleted) {
     const prevBounds = getElementBounds(previousElement)
     if (isInsidePage(prevBounds, dims)) {
@@ -373,6 +388,86 @@ export function clampElementsToPage<T extends BoundedElement>(
   if (previousElements) {
     for (const prev of previousElements) {
       prevMap.set(prev.id, prev)
+    }
+  }
+
+  // Detect group or multi-element drag (elements moving together with the same translation delta)
+  const movedElements: T[] = []
+  let sharedDx: number | null = null
+  let sharedDy: number | null = null
+  let isUniformMove = true
+
+  for (const el of elements) {
+    if (el.isDeleted) continue
+    const prev = prevMap.get(el.id)
+    if (prev && (el.x !== prev.x || el.y !== prev.y)) {
+      movedElements.push(el)
+      const dx = el.x - prev.x
+      const dy = el.y - prev.y
+      if (sharedDx === null || sharedDy === null) {
+        sharedDx = dx
+        sharedDy = dy
+      } else if (Math.abs(sharedDx - dx) > 0.01 || Math.abs(sharedDy - dy) > 0.01) {
+        isUniformMove = false
+      }
+    }
+  }
+
+  // If multiple elements were dragged together, clamp them as a unified group
+  if (movedElements.length > 1 && isUniformMove) {
+    let groupMinX = Infinity
+    let groupMinY = Infinity
+    let groupMaxX = -Infinity
+    let groupMaxY = -Infinity
+
+    for (const el of movedElements) {
+      const b = getElementBounds(el)
+      groupMinX = Math.min(groupMinX, b.minX)
+      groupMinY = Math.min(groupMinY, b.minY)
+      groupMaxX = Math.max(groupMaxX, b.maxX)
+      groupMaxY = Math.max(groupMaxY, b.maxY)
+    }
+
+    const groupW = groupMaxX - groupMinX
+    const groupH = groupMaxY - groupMinY
+
+    if (groupW <= dims.width + 0.01 && groupH <= dims.height + 0.01) {
+      let shiftX = 0
+      let shiftY = 0
+
+      if (groupMinX < 0) {
+        shiftX = -groupMinX
+      } else if (groupMaxX > dims.width) {
+        shiftX = dims.width - groupMaxX
+      }
+
+      if (groupMinY < 0) {
+        shiftY = -groupMinY
+      } else if (groupMaxY > dims.height) {
+        shiftY = dims.height - groupMaxY
+      }
+
+      if (shiftX !== 0 || shiftY !== 0) {
+        const movedIdSet = new Set(movedElements.map((el) => el.id))
+        const shifted = elements.map((el) => {
+          if (!movedIdSet.has(el.id)) return el
+          return {
+            ...el,
+            x: el.x + shiftX,
+            y: el.y + shiftY,
+            version: (el.version ?? 0) + 1,
+            versionNonce: Math.floor(Math.random() * 2000000000)
+          }
+        })
+
+        // Ensure all elements are inside after group shift
+        const allInside = shifted.every(
+          (el) => el.isDeleted || isInsidePage(getElementBounds(el), dims)
+        )
+        if (allInside) {
+          return shifted
+        }
+      }
     }
   }
 
