@@ -3,7 +3,13 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { randomBytes } from 'crypto'
-import { saveNotebookFile, loadNotebookFile } from '../src/main/notebookService'
+import {
+  saveNotebookFile,
+  loadNotebookFile,
+  saveRecoveryCopy,
+  loadRecoveryCopy,
+  clearRecoveryCopy
+} from '../src/main/notebookService'
 import type { Notebook } from '../src/shared/types'
 
 describe('notebookService persistence', () => {
@@ -143,5 +149,30 @@ describe('notebookService persistence', () => {
     const loadRes = await loadNotebookFile(filePath)
     expect(loadRes.success).toBe(false)
     expect(loadRes.error).toContain('newer than supported version')
+  })
+
+  it('manages crash recovery copy life cycle correctly', async () => {
+    // 1. Check when no recovery copy exists
+    const initialCheck = await loadRecoveryCopy(testDir)
+    expect(initialCheck.success).toBe(false)
+
+    // 2. Save recovery copy
+    const saveRes = await saveRecoveryCopy(sampleNotebook, testDir)
+    expect(saveRes.success).toBe(true)
+
+    // Verify recovery file exists on disk
+    const recoveryFile = join(testDir, 'recovery.inkbook')
+    expect(await fs.stat(recoveryFile)).toBeDefined()
+
+    // 3. Load recovery copy
+    const loaded = await loadRecoveryCopy(testDir)
+    expect(loaded.success).toBe(true)
+    expect(loaded.data?.id).toBe(sampleNotebook.id)
+    expect(loaded.data?.name).toBe('Physics Notes')
+
+    // 4. Clear recovery copy
+    await clearRecoveryCopy(testDir)
+    const afterClear = await loadRecoveryCopy(testDir)
+    expect(afterClear.success).toBe(false)
   })
 })

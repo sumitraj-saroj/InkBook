@@ -8,7 +8,10 @@ import {
   saveNotebookFile,
   loadNotebookFile,
   showOpenNotebookDialog,
-  showSaveNotebookDialog
+  showSaveNotebookDialog,
+  saveRecoveryCopy,
+  loadRecoveryCopy,
+  clearRecoveryCopy
 } from './notebookService'
 import type { Notebook } from '../shared/types'
 
@@ -115,6 +118,24 @@ app.whenReady().then(() => {
     }
 
     return { success: true, filePath: selected }
+  })
+
+  // Crash recovery copy IPC handlers
+  ipcMain.handle('recovery:save', async (_event, notebook: Notebook) => {
+    return saveRecoveryCopy(notebook)
+  })
+
+  ipcMain.handle('recovery:load', async () => {
+    const res = await loadRecoveryCopy()
+    if (!res.success || !res.data) {
+      return null
+    }
+    return res.data
+  })
+
+  ipcMain.handle('recovery:clear', async () => {
+    await clearRecoveryCopy()
+    return true
   })
 
   ipcMain.handle('page:export', async (_event, _page, _format) => ({ success: true }))

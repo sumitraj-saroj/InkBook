@@ -91,6 +91,9 @@ export interface InkBookAPI {
   saveNotebook: (notebook: Notebook, filePath?: string) => Promise<SaveNotebookResult>
   saveNotebookAs: (notebook: Notebook) => Promise<SaveNotebookResult>
   onMenuAction: (callback: (action: string) => void) => () => void
+  saveRecoveryCopy: (notebook: Notebook) => Promise<SaveNotebookResult>
+  checkRecoveryCopy: () => Promise<Notebook | null>
+  clearRecoveryCopy: () => Promise<boolean>
   exportPage: (
     page: Page,
     format: 'excalidraw' | 'png' | 'svg'

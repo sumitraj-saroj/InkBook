@@ -1,7 +1,8 @@
 import { promises as fs } from 'fs'
 import { dirname, join } from 'path'
 import { randomBytes } from 'crypto'
-import { dialog, BrowserWindow } from 'electron'
+import { tmpdir } from 'os'
+import { app, dialog, BrowserWindow } from 'electron'
 import { migrateAndValidateNotebook } from '../shared/migration'
 import { validateNotebook } from '../shared/schema'
 import type { Notebook, SaveNotebookResult } from '../shared/types'
@@ -161,5 +162,63 @@ export async function loadNotebookFile(filePath: string): Promise<LoadNotebookRe
   return {
     success: true,
     data: result.data
+  }
+}
+
+function getUserDataDir(customUserDataDir?: string): string {
+  if (customUserDataDir) return customUserDataDir
+  try {
+    if (app && typeof app.getPath === 'function') {
+      return app.getPath('userData')
+    }
+  } catch {
+    // fallback
+  }
+  return tmpdir()
+}
+
+export function getRecoveryFilePath(customUserDataDir?: string): string {
+  const baseDir = getUserDataDir(customUserDataDir)
+  return join(baseDir, 'recovery.inkbook')
+}
+
+/**
+ * Saves a recovery copy of an unsaved notebook into the user data directory.
+ */
+export async function saveRecoveryCopy(
+  notebook: Notebook,
+  customUserDataDir?: string
+): Promise<SaveNotebookResult> {
+  const filePath = getRecoveryFilePath(customUserDataDir)
+  return saveNotebookFile(notebook, filePath)
+}
+
+/**
+ * Loads the recovery copy if one exists and is valid.
+ */
+export async function loadRecoveryCopy(customUserDataDir?: string): Promise<LoadNotebookResult> {
+  const filePath = getRecoveryFilePath(customUserDataDir)
+  try {
+    await fs.access(filePath)
+  } catch {
+    return { success: false, error: 'No recovery copy found' }
+  }
+  return loadNotebookFile(filePath)
+}
+
+/**
+ * Clears the recovery copy and its backup.
+ */
+export async function clearRecoveryCopy(customUserDataDir?: string): Promise<void> {
+  const filePath = getRecoveryFilePath(customUserDataDir)
+  try {
+    await fs.unlink(filePath)
+  } catch {
+    // Ignore error if file does not exist
+  }
+  try {
+    await fs.unlink(`${filePath}.bak`)
+  } catch {
+    // Ignore error if backup does not exist
   }
 }

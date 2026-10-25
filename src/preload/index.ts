@@ -28,6 +28,15 @@ const api: InkBookAPI = {
       ipcRenderer.removeListener('menu:action', listener)
     }
   },
+  saveRecoveryCopy: async (notebook: Notebook): Promise<SaveNotebookResult> => {
+    return ipcRenderer.invoke('recovery:save', notebook)
+  },
+  checkRecoveryCopy: async (): Promise<Notebook | null> => {
+    return ipcRenderer.invoke('recovery:load')
+  },
+  clearRecoveryCopy: async (): Promise<boolean> => {
+    return ipcRenderer.invoke('recovery:clear')
+  },
   exportPage: async (
     page: Page,
     format: 'excalidraw' | 'png' | 'svg'
