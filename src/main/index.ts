@@ -64,9 +64,16 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      devTools: is.dev
     }
   })
+
+  if (!is.dev) {
+    mainWindow.webContents.on('devtools-opened', () => {
+      mainWindow.webContents.closeDevTools()
+    })
+  }
 
   mainWindowInstance = mainWindow
 
@@ -153,10 +160,12 @@ app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.inkbook.app')
 
-  // Default open or close DevTools by F12 in development
+  // Default open or close DevTools by F12 in development only
   // and ignore CommandOrControl + R in production.
   app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
+    if (is.dev) {
+      optimizer.watchWindowShortcuts(window)
+    }
   })
 
   // IPC test

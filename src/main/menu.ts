@@ -1,4 +1,5 @@
 import { app, BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron'
+import { is } from '@electron-toolkit/utils'
 
 let currentRecentNotebooks: string[] = []
 
@@ -188,7 +189,7 @@ export function setupApplicationMenu(): void {
         { type: 'separator' },
         { role: 'reload' as const },
         { role: 'forceReload' as const },
-        { role: 'toggleDevTools' as const },
+        ...(is.dev ? [{ role: 'toggleDevTools' as const }] : []),
         { type: 'separator' },
         { role: 'resetZoom' as const },
         { role: 'zoomIn' as const },
