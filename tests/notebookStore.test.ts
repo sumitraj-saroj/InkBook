@@ -1,0 +1,124 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import { useNotebookStore } from '../src/renderer/src/store/notebookStore'
+
+describe('Notebook Zustand Store', () => {
+  beforeEach(() => {
+    // Reset store with a fresh default notebook
+    useNotebookStore.getState().newNotebook('Test Notebook')
+  })
+
+  it('initializes with a default notebook and 1 page', () => {
+    const state = useNotebookStore.getState()
+    expect(state.currentNotebook.name).toBe('Test Notebook')
+    expect(state.currentNotebook.pages).toHaveLength(1)
+    expect(state.currentPageId).toBe(state.currentNotebook.pages[0]?.id)
+    expect(state.isDirty).toBe(false)
+  })
+
+  it('adds a new page and switches active page', () => {
+    const store = useNotebookStore.getState()
+    const page2 = store.addPage('A4', 'portrait', 'grid')
+
+    const state = useNotebookStore.getState()
+    expect(state.currentNotebook.pages).toHaveLength(2)
+    expect(state.currentPageId).toBe(page2.id)
+    expect(page2.title).toBe('Page 2')
+    expect(page2.background).toBe('grid')
+    expect(state.isDirty).toBe(true)
+  })
+
+  it('renames a page cleanly', () => {
+    const store = useNotebookStore.getState()
+    const page1Id = store.currentNotebook.pages[0]!.id
+
+    store.renamePage(page1Id, '  Introduction  ')
+    expect(useNotebookStore.getState().currentNotebook.pages[0]?.title).toBe('Introduction')
+    expect(useNotebookStore.getState().isDirty).toBe(true)
+
+    // Should ignore empty rename
+    store.renamePage(page1Id, '   ')
+    expect(useNotebookStore.getState().currentNotebook.pages[0]?.title).toBe('Introduction')
+  })
+
+  it('reorders pages correctly within bounds', () => {
+    const store = useNotebookStore.getState()
+    const page2 = store.addPage('A4', 'portrait', 'ruled')
+    const page3 = store.addPage('A4', 'portrait', 'blank')
+
+    const page1Id = store.currentNotebook.pages[0]!.id
+    const page2Id = page2.id
+    const page3Id = page3.id
+
+    // Initial order: [page1, page2, page3]
+    store.reorderPages(0, 2)
+    // New order: [page2, page3, page1]
+    const pages = useNotebookStore.getState().currentNotebook.pages
+    expect(pages[0]?.id).toBe(page2Id)
+    expect(pages[1]?.id).toBe(page3Id)
+    expect(pages[2]?.id).toBe(page1Id)
+
+    // Invalid index reorder should no-op
+    store.reorderPages(-1, 5)
+    expect(useNotebookStore.getState().currentNotebook.pages[0]?.id).toBe(page2Id)
+  })
+
+  it('deletes a page and updates active page ID to adjacent page', () => {
+    const store = useNotebookStore.getState()
+    const page2 = store.addPage('A4', 'portrait', 'ruled')
+    const page3 = store.addPage('A4', 'portrait', 'dots')
+
+    // Current page is page3. Switch to page2 and delete it.
+    store.setCurrentPage(page2.id)
+    const deleted = store.deletePage(page2.id)
+
+    expect(deleted).toBe(true)
+    const state = useNotebookStore.getState()
+    expect(state.currentNotebook.pages).toHaveLength(2)
+    expect(state.currentNotebook.pages.some((p) => p.id === page2.id)).toBe(false)
+    // Current page should have switched to page3 (adjacent index) or page1
+    expect(state.currentPageId).toBe(page3.id)
+  })
+
+  it('prevents deleting the last remaining page', () => {
+    const store = useNotebookStore.getState()
+    expect(store.currentNotebook.pages).toHaveLength(1)
+    const onlyPageId = store.currentNotebook.pages[0]!.id
+
+    const deleted = store.deletePage(onlyPageId)
+    expect(deleted).toBe(false)
+    expect(useNotebookStore.getState().currentNotebook.pages).toHaveLength(1)
+  })
+
+  it('duplicates a page preserving elements and scene data', () => {
+    const store = useNotebookStore.getState()
+    const page1Id = store.currentNotebook.pages[0]!.id
+
+    // Put some elements in page 1
+    store.updatePageScene(page1Id, {
+      elements: [{ id: 'el-1', type: 'rectangle' }],
+      appState: { viewBackgroundColor: '#ff0000', openMenu: 'transient' }
+    })
+
+    const duplicate = store.duplicatePage(page1Id)
+    expect(duplicate).not.toBeNull()
+    expect(duplicate?.id).not.toBe(page1Id)
+    expect(duplicate?.title).toBe('Page 1 (Copy)')
+    expect(duplicate?.scene.elements).toHaveLength(1)
+    // Transient appState was sanitized on updatePageScene
+    const rawState = duplicate?.scene.appState as Record<string, unknown>
+    expect(rawState?.['openMenu']).toBeUndefined()
+
+    const state = useNotebookStore.getState()
+    expect(state.currentNotebook.pages).toHaveLength(2)
+    expect(state.currentPageId).toBe(duplicate?.id)
+  })
+
+  it('renames notebook and marks dirty', () => {
+    const store = useNotebookStore.getState()
+    store.renameNotebook('  My New InkBook  ')
+
+    const state = useNotebookStore.getState()
+    expect(state.currentNotebook.name).toBe('My New InkBook')
+    expect(state.isDirty).toBe(true)
+  })
+})
