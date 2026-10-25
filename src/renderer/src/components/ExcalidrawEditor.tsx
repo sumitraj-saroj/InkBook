@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Excalidraw } from '@excalidraw/excalidraw'
 import '@excalidraw/excalidraw/index.css'
 import { useTheme } from '../context/ThemeContext'
@@ -7,6 +8,15 @@ export function ExcalidrawEditor(): React.JSX.Element {
   const { theme } = useTheme()
   const { setExcalidrawAPI } = useEditor()
 
+  const initialData = useMemo(
+    () => ({
+      appState: {
+        viewBackgroundColor: 'transparent'
+      }
+    }),
+    []
+  )
+
   return (
     <div
       className="editor-container"
@@ -14,6 +24,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
     >
       <Excalidraw
         theme={theme}
+        initialData={initialData}
         excalidrawAPI={(api): void => {
           setExcalidrawAPI(api)
         }}
