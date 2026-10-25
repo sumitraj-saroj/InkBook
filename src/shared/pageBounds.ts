@@ -1,3 +1,6 @@
+import { getPageDimensions } from './constants'
+import type { PageOrientation, PageSize } from './types'
+
 export interface ElementBounds {
   minX: number
   minY: number
@@ -174,4 +177,208 @@ export function getElementBounds(element: BoundedElement): ElementBounds {
     width: maxX - minX,
     height: maxY - minY
   }
+}
+
+export type PageTarget =
+  { size: PageSize; orientation: PageOrientation } | { width: number; height: number }
+
+export function resolvePageDimensions(page: PageTarget): { width: number; height: number } {
+  if ('size' in page && 'orientation' in page) {
+    return getPageDimensions(page)
+  }
+  return { width: page.width, height: page.height }
+}
+
+/**
+ * Checks whether an element's bounding box is fully contained within the page rectangle (0,0,width,height).
+ */
+export function isInsidePage(bounds: ElementBounds, page: PageTarget, tolerance = 0.01): boolean {
+  const dims = resolvePageDimensions(page)
+  return (
+    bounds.minX >= -tolerance &&
+    bounds.minY >= -tolerance &&
+    bounds.maxX <= dims.width + tolerance &&
+    bounds.maxY <= dims.height + tolerance
+  )
+}
+
+/**
+ * Clamps an individual element so its bounding box lies strictly within the page.
+ */
+export function clampElementToPage<T extends BoundedElement>(
+  element: T,
+  page: PageTarget,
+  previousElement?: T
+): T {
+  if (element.isDeleted) return element
+
+  const dims = resolvePageDimensions(page)
+  const bounds = getElementBounds(element)
+
+  if (isInsidePage(bounds, dims)) {
+    return element
+  }
+
+  const pageWidth = dims.width
+  const pageHeight = dims.height
+  const bw = bounds.width
+  const bh = bounds.height
+
+  // 1. If element's bounding box fits within page dimensions, translate it into view
+  if (bw <= pageWidth + 0.01 && bh <= pageHeight + 0.01) {
+    let dx = 0
+    let dy = 0
+
+    if (bounds.minX < 0) {
+      dx = -bounds.minX
+    } else if (bounds.maxX > pageWidth) {
+      dx = pageWidth - bounds.maxX
+    }
+
+    if (bounds.minY < 0) {
+      dy = -bounds.minY
+    } else if (bounds.maxY > pageHeight) {
+      dy = pageHeight - bounds.maxY
+    }
+
+    const translated: T = {
+      ...element,
+      x: element.x + dx,
+      y: element.y + dy,
+      version: (element.version ?? 0) + 1,
+      versionNonce: Math.floor(Math.random() * 2000000000)
+    }
+
+    const newBounds = getElementBounds(translated)
+    if (isInsidePage(newBounds, dims)) {
+      return translated
+    }
+  }
+
+  // 2. Element exceeds page dimensions or rotation prevents pure translation
+  // Handle linear elements (lines, arrows) and freedraw by clamping their points
+  if (
+    (element.type === 'line' || element.type === 'arrow' || element.type === 'freedraw') &&
+    element.points &&
+    element.points.length > 0
+  ) {
+    const angle = element.angle ?? 0
+    if (!angle) {
+      const clampedPoints = element.points.map(([px, py]) => {
+        const sx = Math.max(0, Math.min(pageWidth, element.x + px))
+        const sy = Math.max(0, Math.min(pageHeight, element.y + py))
+        return [sx - element.x, sy - element.y] as const
+      })
+
+      const clamped: T = {
+        ...element,
+        points: clampedPoints,
+        version: (element.version ?? 0) + 1,
+        versionNonce: Math.floor(Math.random() * 2000000000)
+      }
+
+      const newBounds = getElementBounds(clamped)
+      if (isInsidePage(newBounds, dims)) {
+        return clamped
+      }
+    }
+  }
+
+  // 3. For unrotated shapes (rectangles, ellipses, diamonds, images, frames)
+  if (!element.angle) {
+    let nextX = Math.max(0, Math.min(pageWidth, element.x))
+    let nextY = Math.max(0, Math.min(pageHeight, element.y))
+    let nextW = Math.max(1, Math.min(element.width, pageWidth - nextX))
+    let nextH = Math.max(1, Math.min(element.height, pageHeight - nextY))
+
+    if (element.x < 0) {
+      nextW = Math.max(1, element.width + element.x)
+      nextX = 0
+    }
+    if (element.y < 0) {
+      nextH = Math.max(1, element.height + element.y)
+      nextY = 0
+    }
+
+    const clamped: T = {
+      ...element,
+      x: nextX,
+      y: nextY,
+      width: Math.min(nextW, pageWidth - nextX),
+      height: Math.min(nextH, pageHeight - nextY),
+      version: (element.version ?? 0) + 1,
+      versionNonce: Math.floor(Math.random() * 2000000000)
+    }
+
+    const newBounds = getElementBounds(clamped)
+    if (isInsidePage(newBounds, dims)) {
+      return clamped
+    }
+  }
+
+  // 4. If previous valid state exists, revert to it
+  if (previousElement && !previousElement.isDeleted) {
+    const prevBounds = getElementBounds(previousElement)
+    if (isInsidePage(prevBounds, dims)) {
+      return {
+        ...previousElement,
+        version: (element.version ?? 0) + 1,
+        versionNonce: Math.floor(Math.random() * 2000000000)
+      }
+    }
+  }
+
+  // 5. Hard fallback: fit into top-left of page
+  const safeW = Math.max(1, Math.min(element.width, pageWidth))
+  const safeH = Math.max(1, Math.min(element.height, pageHeight))
+  return {
+    ...element,
+    x: 0,
+    y: 0,
+    width: safeW,
+    height: safeH,
+    angle: 0,
+    version: (element.version ?? 0) + 1,
+    versionNonce: Math.floor(Math.random() * 2000000000)
+  }
+}
+
+/**
+ * Validates and clamps an array of elements so that all non-deleted elements
+ * strictly reside within the page boundaries. Returns the clamped element array.
+ */
+export function clampElementsToPage<T extends BoundedElement>(
+  elements: readonly T[],
+  page: PageTarget,
+  previousElements?: readonly T[]
+): T[] {
+  const dims = resolvePageDimensions(page)
+  let hasViolation = false
+
+  for (const el of elements) {
+    if (!el.isDeleted) {
+      const bounds = getElementBounds(el)
+      if (!isInsidePage(bounds, dims)) {
+        hasViolation = true
+        break
+      }
+    }
+  }
+
+  if (!hasViolation) {
+    return elements as T[]
+  }
+
+  const prevMap = new Map<string, T>()
+  if (previousElements) {
+    for (const prev of previousElements) {
+      prevMap.set(prev.id, prev)
+    }
+  }
+
+  return elements.map((el) => {
+    if (el.isDeleted) return el
+    const prev = prevMap.get(el.id)
+    return clampElementToPage(el, dims, prev)
+  })
 }
