@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useId } from 'react'
 import { useTheme } from '../context/ThemeContext'
 import {
   type PageDimensions,
@@ -28,10 +28,11 @@ export function PageBackground({
   const colors = getBackgroundColors(theme)
   const { spacing, ruledTopMargin, ruledLeftMargin, strokeWidth, dotRadius } = BACKGROUND_CONFIG
 
-  const clipId = 'page-paper-clip'
-  const ruledPatternId = 'page-ruled-pattern'
-  const gridPatternId = 'page-grid-pattern'
-  const dotsPatternId = 'page-dots-pattern'
+  const uniqueId = useId().replace(/:/g, '')
+  const clipId = `page-paper-clip-${uniqueId}`
+  const ruledPatternId = `page-ruled-pattern-${uniqueId}`
+  const gridPatternId = `page-grid-pattern-${uniqueId}`
+  const dotsPatternId = `page-dots-pattern-${uniqueId}`
 
   return (
     <svg
@@ -63,11 +64,12 @@ export function PageBackground({
         >
           <line
             x1="0"
-            y1="0"
+            y1={spacing}
             x2={pageDimensions.width}
-            y2="0"
+            y2={spacing}
             stroke={colors.ruledLine}
             strokeWidth={strokeWidth}
+            shapeRendering="crispEdges"
           />
         </pattern>
 
@@ -85,14 +87,15 @@ export function PageBackground({
             fill="none"
             stroke={colors.gridLine}
             strokeWidth={strokeWidth}
+            shapeRendering="crispEdges"
           />
         </pattern>
 
-        {/* Dot grid pattern */}
+        {/* Dot grid pattern aligned to 0,0 scene coordinates */}
         <pattern
           id={dotsPatternId}
-          x="0"
-          y="0"
+          x={-spacing / 2}
+          y={-spacing / 2}
           width={spacing}
           height={spacing}
           patternUnits="userSpaceOnUse"
@@ -122,14 +125,15 @@ export function PageBackground({
                 height={Math.max(0, pageDimensions.height - ruledTopMargin)}
                 fill={`url(#${ruledPatternId})`}
               />
-              {/* Top header dividing line */}
+              {/* Header dividing line at ruledTopMargin */}
               <line
                 x1="0"
                 y1={ruledTopMargin}
                 x2={pageDimensions.width}
                 y2={ruledTopMargin}
                 stroke={colors.ruledLine}
-                strokeWidth={strokeWidth}
+                strokeWidth={strokeWidth * 1.5}
+                shapeRendering="crispEdges"
               />
               {/* Optional vertical margin line on the left */}
               {showMarginLine && (
@@ -140,6 +144,7 @@ export function PageBackground({
                   y2={pageDimensions.height}
                   stroke={colors.ruledMarginLine}
                   strokeWidth={strokeWidth}
+                  shapeRendering="crispEdges"
                 />
               )}
             </>
