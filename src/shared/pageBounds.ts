@@ -264,9 +264,15 @@ export function clampElementToPage<T extends BoundedElement>(
   ) {
     const angle = element.angle ?? 0
     if (!angle) {
+      const isArrow = element.type === 'arrow'
+      const margin =
+        isArrow && (element.startArrowhead || element.endArrowhead)
+          ? Math.max((element.strokeWidth ?? 1) * 2, 10)
+          : 0
+
       const clampedPoints = element.points.map(([px, py]) => {
-        const sx = Math.max(0, Math.min(pageWidth, element.x + px))
-        const sy = Math.max(0, Math.min(pageHeight, element.y + py))
+        const sx = Math.max(margin, Math.min(pageWidth - margin, element.x + px))
+        const sy = Math.max(margin, Math.min(pageHeight - margin, element.y + py))
         return [sx - element.x, sy - element.y] as const
       })
 
@@ -280,6 +286,30 @@ export function clampElementToPage<T extends BoundedElement>(
       const newBounds = getElementBounds(clamped)
       if (isInsidePage(newBounds, dims)) {
         return clamped
+      }
+    }
+  }
+
+  // Handle dynamic text growth as user types past edges
+  if (element.type === 'text') {
+    let nextX = element.x
+    let nextY = element.y
+    if (element.x + element.width > pageWidth) {
+      nextX = Math.max(0, pageWidth - element.width)
+    }
+    if (element.y + element.height > pageHeight) {
+      nextY = Math.max(0, pageHeight - element.height)
+    }
+    if (nextX !== element.x || nextY !== element.y) {
+      const clampedText: T = {
+        ...element,
+        x: nextX,
+        y: nextY,
+        version: (element.version ?? 0) + 1,
+        versionNonce: Math.floor(Math.random() * 2000000000)
+      }
+      if (isInsidePage(getElementBounds(clampedText), dims)) {
+        return clampedText
       }
     }
   }

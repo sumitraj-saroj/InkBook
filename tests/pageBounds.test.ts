@@ -355,6 +355,48 @@ describe('pageBounds', () => {
       expect(isInsidePage(getElementBounds(img), a4Page)).toBe(true)
     })
 
+    it('clamps arrow endpoints taking arrowhead margin into account', () => {
+      const arrow: BoundedElement = {
+        id: 'a1',
+        type: 'arrow',
+        x: 700,
+        y: 100,
+        width: 120,
+        height: 20,
+        points: [
+          [0, 0],
+          [120, 0] // 700 + 120 = 820 > 794
+        ],
+        endArrowhead: 'arrow'
+      }
+      const clamped = clampElementsToPage([arrow], a4Page, [])
+      const el = clamped[0]!
+      const bounds = getElementBounds(el)
+      expect(isInsidePage(bounds, a4Page)).toBe(true)
+    })
+
+    it('shifts text leftward when text typing grows past right edge', () => {
+      // Text originally at x=700 with width=50 (fits inside 794)
+      const prev: BoundedElement = {
+        id: 't1',
+        type: 'text',
+        x: 700,
+        y: 200,
+        width: 50,
+        height: 30
+      }
+      // User types more text, width expands to 150 (700 + 150 = 850 > 794)
+      const expanded: BoundedElement = {
+        ...prev,
+        width: 150
+      }
+      const clamped = clampElementsToPage([expanded], a4Page, [prev])
+      const el = clamped[0]!
+      // Should shift left to 794 - 150 = 644
+      expect(el.x).toBe(644)
+      expect(isInsidePage(getElementBounds(el), a4Page)).toBe(true)
+    })
+
     it('ignores deleted elements', () => {
       const deleted: BoundedElement = {
         id: '1',
