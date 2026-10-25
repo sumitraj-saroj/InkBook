@@ -1,5 +1,6 @@
 # PROGRESS
 
-| Phase                  | Status      | Date       | What was built                                                        | Known Issues | Commit Hash |
-| ---------------------- | ----------- | ---------- | --------------------------------------------------------------------- | ------------ | ----------- |
-| Phase 0: Project Setup | In Progress | 2026-10-25 | Initial repository setup (.gitignore, README.md, NOTICE, PROGRESS.md) | None         | Pending     |
+| Phase                     | Status | Date       | What was built                                                                                                                                                                                                                                        | Known Issues | Commit Hash |
+| ------------------------- | ------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------- |
+| Phase 0: Project Setup    | done   | 2026-10-25 | Initial repository setup (.gitignore, README.md, NOTICE, PROGRESS.md)                                                                                                                                                                                 | None         | 262bc75     |
+| Phase 1: Project Scaffold | done   | 2026-10-25 | electron-vite + React + strict TypeScript scaffold; ESLint, Prettier, Vitest configuration; secure BrowserWindow (1280x800, dark background, sandbox); native application menu (File/Edit/View/Help); typed preload `window.api`; two-panel UI layout | None         | a9690e7     |
