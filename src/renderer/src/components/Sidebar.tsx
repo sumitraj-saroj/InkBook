@@ -10,7 +10,11 @@ import { useNotebookStore } from '../store/notebookStore'
 import { PageContextMenu, type ContextMenuPosition } from './PageContextMenu'
 import { PageThumbnail } from './PageThumbnail'
 
-export function Sidebar(): React.JSX.Element {
+export interface SidebarProps {
+  onOpenPageSettings?: () => void
+}
+
+export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element {
   const pages = useNotebookStore((s) => s.currentNotebook.pages)
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const setCurrentPage = useNotebookStore((s) => s.setCurrentPage)
@@ -296,6 +300,7 @@ export function Sidebar(): React.JSX.Element {
           onDelete={handleDeletePage}
           onMoveUp={(idx): void => reorderPages(idx, idx - 1)}
           onMoveDown={(idx): void => reorderPages(idx, idx + 1)}
+          onOpenPageSettings={(): void => onOpenPageSettings?.()}
         />
       )}
     </aside>

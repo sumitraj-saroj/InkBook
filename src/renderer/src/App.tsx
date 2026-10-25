@@ -9,6 +9,7 @@ import { WelcomeScreen } from './components/WelcomeScreen'
 import { ExportDialog } from './components/ExportDialog'
 import { CommandPalette } from './components/CommandPalette'
 import { ShortcutsHelpDialog } from './components/ShortcutsHelpDialog'
+import { PageSettingsDialog } from './components/PageSettingsDialog'
 import { useTheme } from './context/ThemeContext'
 import { ThemeProvider } from './context/ThemeProvider'
 import { useEditor } from './context/EditorContext'
@@ -46,6 +47,7 @@ function Workspace(): React.JSX.Element {
   const [exportFormat, setExportFormat] = useState<'png' | 'svg' | 'excalidraw' | 'pdf'>('png')
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
+  const [isPageSettingsOpen, setIsPageSettingsOpen] = useState(false)
 
   const handleFitToWindow = useCallback((): void => {
     if (!excalidrawAPI) return
@@ -498,7 +500,7 @@ function Workspace(): React.JSX.Element {
       {/* Main workspace with 2-panel layout */}
       <div className="workspace-body">
         {/* Left Sidebar */}
-        <Sidebar />
+        <Sidebar onOpenPageSettings={(): void => setIsPageSettingsOpen(true)} />
 
         {/* Main Content Area */}
         <main className="canvas-area">
@@ -537,11 +539,18 @@ function Workspace(): React.JSX.Element {
           setIsExportOpen(true)
         }}
         onOpenPageSettings={(): void => {
-          // Hooked in page settings commit
+          setIsPageSettingsOpen(true)
         }}
         onOpenShortcutsHelp={(): void => {
           setIsShortcutsHelpOpen(true)
         }}
+      />
+
+      <PageSettingsDialog
+        key={String(isPageSettingsOpen)}
+        isOpen={isPageSettingsOpen}
+        onClose={(): void => setIsPageSettingsOpen(false)}
+        onFitPage={handleFitToWindow}
       />
 
       <ShortcutsHelpDialog

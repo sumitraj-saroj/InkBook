@@ -46,6 +46,7 @@ export interface Page {
   size: PageSize
   orientation: PageOrientation
   background: PageBackground
+  showMarginLine?: boolean
   scene: PageScene
 }
 

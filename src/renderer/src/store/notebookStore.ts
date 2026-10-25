@@ -7,7 +7,8 @@ import {
   type Page,
   type PageBackground,
   type PageOrientation,
-  type PagePreset
+  type PagePreset,
+  type PageSize
 } from '@shared/index'
 
 export function createDefaultPage(
@@ -78,6 +79,15 @@ export interface NotebookState {
     }
   ) => void
   setPageBackground: (pageId: string, background: PageBackground) => void
+  updatePageSettings: (
+    pageId: string,
+    settings: {
+      size?: PageSize
+      orientation?: PageOrientation
+      background?: PageBackground
+      showMarginLine?: boolean
+    }
+  ) => void
   markClean: () => void
 }
 
@@ -317,6 +327,36 @@ export const useNotebookStore = create<NotebookState>((set, get) => ({
         ...state.currentNotebook,
         updatedAt: new Date().toISOString(),
         pages: state.currentNotebook.pages.map((p) => (p.id === pageId ? { ...p, background } : p))
+      },
+      isDirty: true
+    }))
+  },
+
+  updatePageSettings: (
+    pageId: string,
+    settings: {
+      size?: PageSize
+      orientation?: PageOrientation
+      background?: PageBackground
+      showMarginLine?: boolean
+    }
+  ): void => {
+    set((state) => ({
+      currentNotebook: {
+        ...state.currentNotebook,
+        updatedAt: new Date().toISOString(),
+        pages: state.currentNotebook.pages.map((p) => {
+          if (p.id !== pageId) return p
+          return {
+            ...p,
+            ...(settings.size ? { size: settings.size } : {}),
+            ...(settings.orientation ? { orientation: settings.orientation } : {}),
+            ...(settings.background ? { background: settings.background } : {}),
+            ...(typeof settings.showMarginLine === 'boolean'
+              ? { showMarginLine: settings.showMarginLine }
+              : {})
+          }
+        })
       },
       isDirty: true
     }))

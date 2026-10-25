@@ -70,7 +70,8 @@ export async function renderPageToCanvas(
       fullHeight,
       includeBackground ? page.background : 'blank',
       theme,
-      transparent
+      transparent,
+      page.showMarginLine ?? true
     )
     ctx.restore()
   }
@@ -196,7 +197,8 @@ export async function exportPageToSvgString(
       fullHeight,
       includeBackground ? page.background : 'blank',
       theme,
-      transparent
+      transparent,
+      page.showMarginLine ?? true
     )
     const insertPos = svgString.indexOf('>') + 1
     if (insertPos > 0) {
