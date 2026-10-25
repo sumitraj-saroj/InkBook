@@ -94,6 +94,9 @@ export interface InkBookAPI {
   saveRecoveryCopy: (notebook: Notebook) => Promise<SaveNotebookResult>
   checkRecoveryCopy: () => Promise<Notebook | null>
   clearRecoveryCopy: () => Promise<boolean>
+  setDirtyState: (isDirty: boolean, notebookName: string) => void
+  onSaveAndCloseRequest: (callback: () => Promise<void>) => () => void
+  notifySaveAndCloseCompleted: () => void
   exportPage: (
     page: Page,
     format: 'excalidraw' | 'png' | 'svg'

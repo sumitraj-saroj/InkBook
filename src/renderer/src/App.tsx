@@ -169,6 +169,24 @@ function Workspace(): React.JSX.Element {
     }
   }, [handleNewNotebook, handleOpenNotebook, handleSaveNotebook, handleSaveAsNotebook])
 
+  // Window title and dirty state synchronization
+  useEffect(() => {
+    const title = `${isDirty ? '• ' : ''}${currentNotebook.name} - InkBook`
+    document.title = title
+    window.api.setDirtyState(isDirty, currentNotebook.name)
+  }, [isDirty, currentNotebook.name])
+
+  // Handle save and close request from native window close event
+  useEffect(() => {
+    const unsubscribe = window.api.onSaveAndCloseRequest(async () => {
+      await handleSaveNotebook()
+      window.api.notifySaveAndCloseCompleted()
+    })
+    return (): void => {
+      unsubscribe()
+    }
+  }, [handleSaveNotebook])
+
   const handleOpen = async (): Promise<void> => {
     if (!excalidrawAPI) return
     const result = await window.api.openExcalidrawFile()

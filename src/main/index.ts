@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -15,6 +15,11 @@ import {
 } from './notebookService'
 import type { Notebook } from '../shared/types'
 
+let mainWindowInstance: BrowserWindow | null = null
+let isDirtyState = false
+let currentNotebookName = 'Untitled Notebook'
+let isForceClosing = false
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -24,12 +29,41 @@ function createWindow(): void {
     minHeight: 600,
     backgroundColor: '#121212',
     show: false,
+    title: 'Untitled Notebook - InkBook',
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false
+    }
+  })
+
+  mainWindowInstance = mainWindow
+
+  mainWindow.on('close', async (e) => {
+    if (isForceClosing) {
+      return
+    }
+
+    if (isDirtyState) {
+      e.preventDefault()
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type: 'warning',
+        buttons: ['Save', "Don't Save", 'Cancel'],
+        defaultId: 0,
+        cancelId: 2,
+        title: 'Unsaved Changes',
+        message: `Do you want to save the changes you made to "${currentNotebookName}"?`,
+        detail: "Your changes will be lost if you don't save them."
+      })
+
+      if (response === 0) {
+        mainWindow.webContents.send('window:request-save-and-close')
+      } else if (response === 1) {
+        isForceClosing = true
+        mainWindow.close()
+      }
     }
   })
 
@@ -136,6 +170,25 @@ app.whenReady().then(() => {
   ipcMain.handle('recovery:clear', async () => {
     await clearRecoveryCopy()
     return true
+  })
+
+  // Window title dirty state and close handling
+  ipcMain.on('window:set-dirty', (_event, dirty: boolean, name?: string) => {
+    isDirtyState = dirty
+    if (name) {
+      currentNotebookName = name
+    }
+    if (mainWindowInstance && !mainWindowInstance.isDestroyed()) {
+      const title = `${dirty ? '• ' : ''}${currentNotebookName} - InkBook`
+      mainWindowInstance.setTitle(title)
+    }
+  })
+
+  ipcMain.on('window:save-and-close-completed', () => {
+    isForceClosing = true
+    if (mainWindowInstance && !mainWindowInstance.isDestroyed()) {
+      mainWindowInstance.close()
+    }
   })
 
   ipcMain.handle('page:export', async (_event, _page, _format) => ({ success: true }))

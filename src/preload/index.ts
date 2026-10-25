@@ -37,6 +37,21 @@ const api: InkBookAPI = {
   clearRecoveryCopy: async (): Promise<boolean> => {
     return ipcRenderer.invoke('recovery:clear')
   },
+  setDirtyState: (isDirty: boolean, notebookName: string): void => {
+    ipcRenderer.send('window:set-dirty', isDirty, notebookName)
+  },
+  onSaveAndCloseRequest: (callback: () => Promise<void>): (() => void) => {
+    const listener = async (): Promise<void> => {
+      await callback()
+    }
+    ipcRenderer.on('window:request-save-and-close', listener)
+    return (): void => {
+      ipcRenderer.removeListener('window:request-save-and-close', listener)
+    }
+  },
+  notifySaveAndCloseCompleted: (): void => {
+    ipcRenderer.send('window:save-and-close-completed')
+  },
   exportPage: async (
     page: Page,
     format: 'excalidraw' | 'png' | 'svg'
