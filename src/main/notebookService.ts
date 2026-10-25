@@ -44,7 +44,16 @@ export async function saveNotebookFile(
     await fileHandle.close()
     fileHandle = null
 
-    // 3. Atomically rename temp file to target
+    // 3. Keep one rolling backup (*.inkbook.bak) of the previous version if it exists
+    try {
+      await fs.access(filePath)
+      const bakPath = `${filePath}.bak`
+      await fs.copyFile(filePath, bakPath)
+    } catch {
+      // Original file does not exist yet; no prior backup needed
+    }
+
+    // 4. Atomically rename temp file to target
     await fs.rename(tempPath, filePath)
 
     return {
