@@ -52,6 +52,13 @@ appImage:
   artifactName: ${name}-${version}.${ext}
 pacman:
   artifactName: ${name}-${version}.${ext}
+  depends:
+    - gtk3
+    - nss
+    - libnotify
+    - libxss
+    - libsecret
+    - xdg-utils
 npmRebuild: false
 publish:
   provider: generic
