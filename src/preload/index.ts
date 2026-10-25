@@ -1,22 +1,31 @@
-import { contextBridge } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
+import { contextBridge, ipcRenderer } from 'electron'
+import type { InkBookAPI, Notebook, Page, SaveNotebookResult } from '@shared/types'
 
-// Custom APIs for renderer
-const api = {}
+const api: InkBookAPI = {
+  openNotebook: async (filePath?: string): Promise<Notebook | null> => {
+    return ipcRenderer.invoke('notebook:open', filePath)
+  },
+  saveNotebook: async (notebook: Notebook, filePath?: string): Promise<SaveNotebookResult> => {
+    return ipcRenderer.invoke('notebook:save', notebook, filePath)
+  },
+  exportPage: async (
+    page: Page,
+    format: 'excalidraw' | 'png' | 'svg'
+  ): Promise<{ success: boolean; error?: string }> => {
+    return ipcRenderer.invoke('page:export', page, format)
+  },
+  getRecentFiles: async (): Promise<string[]> => {
+    return ipcRenderer.invoke('notebook:recent')
+  }
+}
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
   } catch (error) {
-    console.error(error)
+    console.error('Failed to expose api via contextBridge:', error)
   }
 } else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
-  // @ts-ignore (define in dts)
+  // @ts-ignore fallback for non-isolated context
   window.api = api
 }

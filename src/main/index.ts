@@ -55,6 +55,15 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  // Placeholder IPC handlers for notebook operations
+  ipcMain.handle('notebook:open', async (_event, _filePath) => null)
+  ipcMain.handle('notebook:save', async (_event, _notebook, filePath) => ({
+    success: true,
+    filePath
+  }))
+  ipcMain.handle('page:export', async (_event, _page, _format) => ({ success: true }))
+  ipcMain.handle('notebook:recent', async () => [])
+
   setupApplicationMenu()
   createWindow()
 

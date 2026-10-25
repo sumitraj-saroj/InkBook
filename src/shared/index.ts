@@ -1,2 +1,1 @@
-// Shared types and constants for InkBook
-export {}
+export * from './types'
