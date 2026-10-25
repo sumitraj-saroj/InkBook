@@ -17,6 +17,7 @@ import {
   type BoundedElement
 } from '@shared/index'
 import { PageOverlay } from './PageOverlay'
+import { PageBackground } from './PageBackground'
 
 export function ExcalidrawEditor(): React.JSX.Element {
   const { theme } = useTheme()
@@ -156,9 +157,9 @@ export function ExcalidrawEditor(): React.JSX.Element {
       setViewport((prev) => {
         const currentZoom = finalAppState.zoom?.value ?? 1
         if (
-          Math.abs(prev.scrollX - finalAppState.scrollX) > 0.05 ||
-          Math.abs(prev.scrollY - finalAppState.scrollY) > 0.05 ||
-          Math.abs(prev.zoom - currentZoom) > 0.0005
+          prev.scrollX !== finalAppState.scrollX ||
+          prev.scrollY !== finalAppState.scrollY ||
+          prev.zoom !== currentZoom
         ) {
           return {
             scrollX: finalAppState.scrollX,
@@ -285,18 +286,12 @@ export function ExcalidrawEditor(): React.JSX.Element {
       className="editor-container"
       style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
     >
-      {/* Background sheet behind transparent canvas */}
-      <div
-        className="page-sheet-background"
-        style={{
-          position: 'absolute',
-          left: `${viewport.scrollX * viewport.zoom}px`,
-          top: `${viewport.scrollY * viewport.zoom}px`,
-          width: `${pageDims.width * viewport.zoom}px`,
-          height: `${pageDims.height * viewport.zoom}px`,
-          backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff',
-          pointerEvents: 'none'
-        }}
+      <PageBackground
+        pageDimensions={pageDims}
+        background={activePage?.background ?? 'blank'}
+        scrollX={viewport.scrollX}
+        scrollY={viewport.scrollY}
+        zoom={viewport.zoom}
       />
       <PageOverlay
         pageDimensions={pageDims}
