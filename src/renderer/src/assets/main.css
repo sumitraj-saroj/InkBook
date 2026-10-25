@@ -48,7 +48,8 @@ body,
   --text-muted: #94a3b8;
 }
 
-.theme-toggle-btn {
+.theme-toggle-btn,
+.action-btn {
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
@@ -59,7 +60,8 @@ body,
   transition: all 0.15s ease;
 }
 
-.theme-toggle-btn:hover {
+.theme-toggle-btn:hover,
+.action-btn:hover {
   background-color: var(--accent);
   color: #ffffff;
 }
