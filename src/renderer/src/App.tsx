@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ExcalidrawEditor } from './components/ExcalidrawEditor'
 
 interface MockPage {
   id: string
@@ -23,6 +24,7 @@ function App(): React.JSX.Element {
         <div className="notebook-meta">
           <span className="notebook-badge">InkBook</span>
           <span className="notebook-title">{notebookName}</span>
+          <span className="page-indicator">• {activePage?.title ?? 'Page 1'}</span>
         </div>
         <div className="app-actions">
           <span>Dark Theme</span>
@@ -70,17 +72,8 @@ function App(): React.JSX.Element {
 
         {/* Main Content Area */}
         <main className="canvas-area">
-          <div className="page-viewport-mock">
-            <h2 className="mock-title">{activePage?.title ?? 'Page'}</h2>
-            <p className="mock-subtitle">
-              Drawing area placeholder. Excalidraw integration and hard-boundary engine will be
-              mounted here in Phase 2.
-            </p>
-            <div className="mock-specs">
-              <span>A4 Portrait (794 × 1123 px)</span>
-              <span>•</span>
-              <span>Background: {activePage?.background ?? 'blank'}</span>
-            </div>
+          <div className="editor-wrapper">
+            <ExcalidrawEditor />
           </div>
         </main>
       </div>
