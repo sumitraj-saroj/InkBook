@@ -11,6 +11,7 @@ import { CommandPalette } from './components/CommandPalette'
 import { ShortcutsHelpDialog } from './components/ShortcutsHelpDialog'
 import { PageSettingsDialog } from './components/PageSettingsDialog'
 import { SearchDialog } from './components/SearchDialog'
+import { PageFooter } from './components/PageFooter'
 import { useTheme } from './context/ThemeContext'
 import { ThemeProvider } from './context/ThemeProvider'
 import { useEditor } from './context/EditorContext'
@@ -562,6 +563,13 @@ function Workspace(): React.JSX.Element {
           <div className="editor-wrapper">
             <ExcalidrawEditor />
           </div>
+          <PageFooter
+            onPrevPage={handlePrevPage}
+            onNextPage={handleNextPage}
+            onAddPage={addPage}
+            onFitPage={handleFitToWindow}
+            onOpenSettings={(): void => setIsPageSettingsOpen(true)}
+          />
         </main>
       </div>
 
