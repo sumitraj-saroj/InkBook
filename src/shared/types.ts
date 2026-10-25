@@ -103,6 +103,7 @@ export interface InkBookAPI {
   ) => Promise<{ success: boolean; error?: string }>
   getRecentFiles: () => Promise<string[]>
   clearRecentFiles: () => Promise<boolean>
+  getInitialFile: () => Promise<string | null>
   openExcalidrawFile: () => Promise<OpenFileResult>
   saveExcalidrawFile: (content: string) => Promise<SaveFileResult>
 }

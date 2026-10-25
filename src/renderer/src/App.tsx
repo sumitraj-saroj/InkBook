@@ -108,6 +108,18 @@ function Workspace(): React.JSX.Element {
     [isDirty, setCurrentNotebook]
   )
 
+  // Check for command line file argument on startup
+  useEffect(() => {
+    window.api
+      .getInitialFile()
+      .then((path) => {
+        if (path) {
+          handleOpenRecentPath(path).catch(console.error)
+        }
+      })
+      .catch(console.error)
+  }, [handleOpenRecentPath])
+
   const handleSaveNotebook = useCallback(async (): Promise<void> => {
     const result = await window.api.saveNotebook(currentNotebook, filePath ?? undefined)
     if (result.canceled) return

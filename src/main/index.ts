@@ -14,7 +14,27 @@ import {
   clearRecoveryCopy
 } from './notebookService'
 import { getRecentNotebooks, addRecentNotebook, clearRecentNotebooks } from './settingsService'
+import { findInkBookArgument } from './commandLine'
 import type { Notebook } from '../shared/types'
+
+const initialFileArgument = findInkBookArgument(process.argv)
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, commandLine) => {
+    if (mainWindowInstance) {
+      if (mainWindowInstance.isMinimized()) mainWindowInstance.restore()
+      mainWindowInstance.focus()
+
+      const fileToOpen = findInkBookArgument(commandLine)
+      if (fileToOpen) {
+        mainWindowInstance.webContents.send('menu:action', 'open-recent', fileToOpen)
+      }
+    }
+  })
+}
 
 let mainWindowInstance: BrowserWindow | null = null
 let isDirtyState = false
@@ -200,6 +220,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle('page:export', async (_event, _page, _format) => ({ success: true }))
   ipcMain.handle('notebook:recent', async () => getRecentNotebooks())
+  ipcMain.handle('app:initial-file', async () => initialFileArgument)
   ipcMain.handle('notebook:clear-recent', async () => {
     await clearRecentNotebooks()
     updateMenuRecentNotebooks([])

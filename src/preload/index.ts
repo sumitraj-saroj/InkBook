@@ -68,6 +68,9 @@ const api: InkBookAPI = {
   clearRecentFiles: async (): Promise<boolean> => {
     return ipcRenderer.invoke('notebook:clear-recent')
   },
+  getInitialFile: async (): Promise<string | null> => {
+    return ipcRenderer.invoke('app:initial-file')
+  },
   openExcalidrawFile: async (): Promise<OpenFileResult> => {
     return ipcRenderer.invoke('excalidraw:open')
   },
