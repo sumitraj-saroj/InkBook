@@ -4,6 +4,7 @@ export function Sidebar(): React.JSX.Element {
   const pages = useNotebookStore((s) => s.currentNotebook.pages)
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const setCurrentPage = useNotebookStore((s) => s.setCurrentPage)
+  const addPage = useNotebookStore((s) => s.addPage)
 
   return (
     <aside className="sidebar">
@@ -28,6 +29,19 @@ export function Sidebar(): React.JSX.Element {
             </div>
           )
         })}
+      </div>
+
+      <div className="sidebar-actions">
+        <button
+          className="btn-add-page-action"
+          onClick={(): void => {
+            addPage()
+          }}
+          title="Add a new page"
+        >
+          <span className="btn-add-icon">+</span>
+          <span>Add page</span>
+        </button>
       </div>
 
       <div className="sidebar-footer">
