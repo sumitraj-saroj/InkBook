@@ -8,6 +8,7 @@ import { BackgroundPicker } from './components/BackgroundPicker'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { ExportDialog } from './components/ExportDialog'
 import { CommandPalette } from './components/CommandPalette'
+import { ShortcutsHelpDialog } from './components/ShortcutsHelpDialog'
 import { useTheme } from './context/ThemeContext'
 import { ThemeProvider } from './context/ThemeProvider'
 import { useEditor } from './context/EditorContext'
@@ -35,6 +36,8 @@ function Workspace(): React.JSX.Element {
   const isDirty = useNotebookStore((s) => s.isDirty)
   const newNotebook = useNotebookStore((s) => s.newNotebook)
   const setCurrentNotebook = useNotebookStore((s) => s.setCurrentNotebook)
+  const setCurrentPage = useNotebookStore((s) => s.setCurrentPage)
+  const addPage = useNotebookStore((s) => s.addPage)
   const setFilePath = useNotebookStore((s) => s.setFilePath)
   const markClean = useNotebookStore((s) => s.markClean)
 
@@ -42,6 +45,7 @@ function Workspace(): React.JSX.Element {
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<'png' | 'svg' | 'excalidraw' | 'pdf'>('png')
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
 
   const handleFitToWindow = useCallback((): void => {
     if (!excalidrawAPI) return
@@ -72,6 +76,22 @@ function Workspace(): React.JSX.Element {
       captureUpdate: CaptureUpdateAction.NEVER
     })
   }, [excalidrawAPI, currentNotebook.pages, currentPageId])
+
+  const handleNextPage = useCallback((): void => {
+    const currentIndex = currentNotebook.pages.findIndex((p) => p.id === currentPageId)
+    if (currentIndex !== -1 && currentIndex < currentNotebook.pages.length - 1) {
+      const nextId = currentNotebook.pages[currentIndex + 1]!.id
+      setCurrentPage(nextId)
+    }
+  }, [currentNotebook.pages, currentPageId, setCurrentPage])
+
+  const handlePrevPage = useCallback((): void => {
+    const currentIndex = currentNotebook.pages.findIndex((p) => p.id === currentPageId)
+    if (currentIndex > 0) {
+      const prevId = currentNotebook.pages[currentIndex - 1]!.id
+      setCurrentPage(prevId)
+    }
+  }, [currentNotebook.pages, currentPageId, setCurrentPage])
 
   const handleNewNotebook = useCallback((): void => {
     if (isDirty) {
@@ -249,7 +269,23 @@ function Workspace(): React.JSX.Element {
         handleOpenNotebook()
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.code === 'KeyN')) {
         e.preventDefault()
-        handleNewNotebook()
+        if (e.shiftKey) {
+          addPage()
+        } else {
+          handleNewNotebook()
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'PageDown' || e.code === 'PageDown')) {
+        e.preventDefault()
+        handleNextPage()
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'PageUp' || e.code === 'PageUp')) {
+        e.preventDefault()
+        handlePrevPage()
+      } else if (e.key === 'F2') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('inkbook:rename-current-page'))
+      } else if (e.key === 'F1') {
+        e.preventDefault()
+        setIsShortcutsHelpOpen(true)
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault()
         setIsCommandPaletteOpen((prev) => !prev)
@@ -263,7 +299,10 @@ function Workspace(): React.JSX.Element {
     handleSaveNotebook,
     handleSaveAsNotebook,
     handleOpenNotebook,
-    handleNewNotebook
+    handleNewNotebook,
+    handleNextPage,
+    handlePrevPage,
+    addPage
   ])
 
   // Native Menu action listener
@@ -323,6 +362,9 @@ function Workspace(): React.JSX.Element {
           break
         case 'command-palette':
           setIsCommandPaletteOpen(true)
+          break
+        case 'shortcuts-help':
+          setIsShortcutsHelpOpen(true)
           break
       }
     })
@@ -498,8 +540,13 @@ function Workspace(): React.JSX.Element {
           // Hooked in page settings commit
         }}
         onOpenShortcutsHelp={(): void => {
-          // Hooked in shortcuts commit
+          setIsShortcutsHelpOpen(true)
         }}
+      />
+
+      <ShortcutsHelpDialog
+        isOpen={isShortcutsHelpOpen}
+        onClose={(): void => setIsShortcutsHelpOpen(false)}
       />
     </div>
   )

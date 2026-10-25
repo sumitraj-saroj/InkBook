@@ -193,6 +193,14 @@ export function setupApplicationMenu(): void {
       label: '&Help',
       submenu: [
         {
+          label: 'Keyboard Shortcuts',
+          accelerator: 'F1',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'shortcuts-help')
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'Documentation',
           click: (): void => {
             // Placeholder for documentation

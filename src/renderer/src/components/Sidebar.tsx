@@ -1,4 +1,11 @@
-import { useState, useRef, useEffect, type MouseEvent, type KeyboardEvent } from 'react'
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type MouseEvent,
+  type KeyboardEvent
+} from 'react'
 import { useNotebookStore } from '../store/notebookStore'
 import { PageContextMenu, type ContextMenuPosition } from './PageContextMenu'
 import { PageThumbnail } from './PageThumbnail'
@@ -21,6 +28,16 @@ export function Sidebar(): React.JSX.Element {
   const [viewMode, setViewMode] = useState<'list' | 'thumbnail'>('list')
   const renameInputRef = useRef<HTMLInputElement>(null)
 
+  const handleStartRename = useCallback(
+    (pageId: string): void => {
+      const page = pages.find((p) => p.id === pageId)
+      if (!page) return
+      setRenameValue(page.title)
+      setRenamingPageId(pageId)
+    },
+    [pages]
+  )
+
   useEffect(() => {
     if (renamingPageId && renameInputRef.current) {
       renameInputRef.current.focus()
@@ -28,12 +45,17 @@ export function Sidebar(): React.JSX.Element {
     }
   }, [renamingPageId])
 
-  const handleStartRename = (pageId: string): void => {
-    const page = pages.find((p) => p.id === pageId)
-    if (!page) return
-    setRenameValue(page.title)
-    setRenamingPageId(pageId)
-  }
+  useEffect(() => {
+    const handleRenameCurrent = (): void => {
+      if (currentPageId) {
+        handleStartRename(currentPageId)
+      }
+    }
+    window.addEventListener('inkbook:rename-current-page', handleRenameCurrent)
+    return (): void => {
+      window.removeEventListener('inkbook:rename-current-page', handleRenameCurrent)
+    }
+  }, [currentPageId, handleStartRename])
 
   const handleCommitRename = (pageId: string): void => {
     if (renameValue.trim()) {
