@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto'
 import { tmpdir } from 'os'
 import { app, dialog, BrowserWindow } from 'electron'
 import { migrateAndValidateNotebook } from '../shared/migration'
+import { CURRENT_NOTEBOOK_VERSION } from '../shared/constants'
 import { validateNotebook } from '../shared/schema'
 import type { Notebook, SaveNotebookResult } from '../shared/types'
 
@@ -75,6 +76,25 @@ export async function saveNotebookFile(
       success: false,
       error: `Notebook schema validation failed: ${validation.error}`
     }
+  }
+
+  // Refuse to overwrite if existing file on disk has a newer schema version
+  try {
+    const existingRaw = await fs.readFile(filePath, 'utf-8')
+    const existingJson = JSON.parse(existingRaw) as { version?: unknown }
+    if (
+      typeof existingJson === 'object' &&
+      existingJson !== null &&
+      typeof existingJson.version === 'number' &&
+      existingJson.version > CURRENT_NOTEBOOK_VERSION
+    ) {
+      return {
+        success: false,
+        error: `Refusing to overwrite file: on-disk version (${existingJson.version}) is newer than supported version (${CURRENT_NOTEBOOK_VERSION}).`
+      }
+    }
+  } catch {
+    // Existing file does not exist or is not readable, continue with save
   }
 
   const dir = dirname(filePath)

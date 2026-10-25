@@ -175,4 +175,28 @@ describe('notebookService persistence', () => {
     const afterClear = await loadRecoveryCopy(testDir)
     expect(afterClear.success).toBe(false)
   })
+
+  it('refuses to overwrite an existing file that has a newer version and preserves original content', async () => {
+    const filePath = join(testDir, 'newer.inkbook')
+    const futureNotebook = {
+      format: 'inkbook',
+      version: 999,
+      id: 'future-nb-saved',
+      name: 'Future Notebook That Must Not Be Overwritten',
+      createdAt: '2026-10-25T12:00:00.000Z',
+      updatedAt: '2026-10-25T12:00:00.000Z',
+      pages: []
+    }
+    const originalJson = JSON.stringify(futureNotebook, null, 2)
+    await fs.writeFile(filePath, originalJson, 'utf-8')
+
+    // Attempt to save an older version 1 notebook over it
+    const saveRes = await saveNotebookFile(sampleNotebook, filePath)
+    expect(saveRes.success).toBe(false)
+    expect(saveRes.error).toContain('Refusing to overwrite file: on-disk version (999) is newer')
+
+    // Original file must remain completely untouched
+    const contentOnDisk = await fs.readFile(filePath, 'utf-8')
+    expect(contentOnDisk).toBe(originalJson)
+  })
 })
