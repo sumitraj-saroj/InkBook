@@ -3,7 +3,8 @@ import { useTheme } from '../context/ThemeContext'
 import {
   type PageDimensions,
   type PageBackground as PageBackgroundType,
-  getBackgroundColors
+  getBackgroundColors,
+  BACKGROUND_CONFIG
 } from '@shared/index'
 
 export interface PageBackgroundProps {
@@ -17,15 +18,18 @@ export interface PageBackgroundProps {
 
 export function PageBackground({
   pageDimensions,
-  background: _background,
+  background,
+  showMarginLine = BACKGROUND_CONFIG.showRuledLeftMargin,
   scrollX,
   scrollY,
   zoom
 }: PageBackgroundProps): React.JSX.Element {
   const { theme } = useTheme()
   const colors = getBackgroundColors(theme)
+  const { spacing, ruledTopMargin, ruledLeftMargin, strokeWidth } = BACKGROUND_CONFIG
 
   const clipId = 'page-paper-clip'
+  const ruledPatternId = 'page-ruled-pattern'
 
   return (
     <svg
@@ -45,6 +49,25 @@ export function PageBackground({
         <clipPath id={clipId}>
           <rect x="0" y="0" width={pageDimensions.width} height={pageDimensions.height} />
         </clipPath>
+
+        {/* Ruled horizontal lines pattern */}
+        <pattern
+          id={ruledPatternId}
+          x="0"
+          y={ruledTopMargin}
+          width={pageDimensions.width}
+          height={spacing}
+          patternUnits="userSpaceOnUse"
+        >
+          <line
+            x1="0"
+            y1="0"
+            x2={pageDimensions.width}
+            y2="0"
+            stroke={colors.ruledLine}
+            strokeWidth={strokeWidth}
+          />
+        </pattern>
       </defs>
 
       <g transform={`translate(${scrollX * zoom}, ${scrollY * zoom}) scale(${zoom})`}>
@@ -57,6 +80,39 @@ export function PageBackground({
             height={pageDimensions.height}
             fill={colors.paper}
           />
+
+          {background === 'ruled' && (
+            <>
+              {/* Horizontal ruled lines */}
+              <rect
+                x="0"
+                y={ruledTopMargin}
+                width={pageDimensions.width}
+                height={Math.max(0, pageDimensions.height - ruledTopMargin)}
+                fill={`url(#${ruledPatternId})`}
+              />
+              {/* Top header dividing line */}
+              <line
+                x1="0"
+                y1={ruledTopMargin}
+                x2={pageDimensions.width}
+                y2={ruledTopMargin}
+                stroke={colors.ruledLine}
+                strokeWidth={strokeWidth}
+              />
+              {/* Optional vertical margin line on the left */}
+              {showMarginLine && (
+                <line
+                  x1={ruledLeftMargin}
+                  y1="0"
+                  x2={ruledLeftMargin}
+                  y2={pageDimensions.height}
+                  stroke={colors.ruledMarginLine}
+                  strokeWidth={strokeWidth}
+                />
+              )}
+            </>
+          )}
         </g>
       </g>
     </svg>
