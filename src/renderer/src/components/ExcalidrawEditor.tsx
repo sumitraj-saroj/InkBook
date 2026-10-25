@@ -5,6 +5,7 @@ import '@excalidraw/excalidraw/index.css'
 import { useTheme } from '../context/ThemeContext'
 import { useEditor } from '../context/EditorContext'
 import { useNotebookStore } from '../store/notebookStore'
+import { clampElementsToPage, getPageDimensions, type BoundedElement } from '@shared/index'
 
 export function ExcalidrawEditor(): React.JSX.Element {
   const { theme } = useTheme()
@@ -14,6 +15,8 @@ export function ExcalidrawEditor(): React.JSX.Element {
 
   const activePageIdRef = useRef<string>(currentPageId)
   const isSwitchingRef = useRef<boolean>(false)
+  const isClampingRef = useRef<boolean>(false)
+  const lastValidElementsRef = useRef<readonly BoundedElement[]>([])
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const initialData = useMemo(
@@ -25,12 +28,36 @@ export function ExcalidrawEditor(): React.JSX.Element {
     []
   )
 
-  // Debounced scene change handler to avoid excessive re-renders during active drawing
+  // Debounced scene change handler with page bounds enforcement and re-entry guard
   const handleSceneChange: NonNullable<ExcalidrawProps['onChange']> = useCallback(
     (elements, appState, files): void => {
-      if (isSwitchingRef.current) return
+      if (isSwitchingRef.current || isClampingRef.current) return
       const targetPageId = activePageIdRef.current
       if (!targetPageId) return
+
+      const notebook = useNotebookStore.getState().currentNotebook
+      const targetPage = notebook.pages.find((p) => p.id === targetPageId)
+      if (!targetPage) return
+
+      const pageDims = getPageDimensions(targetPage)
+      const clamped = clampElementsToPage(
+        elements as unknown as readonly BoundedElement[],
+        pageDims,
+        lastValidElementsRef.current
+      ) as unknown as typeof elements
+
+      let activeElements = elements
+      if (clamped !== elements && excalidrawAPI) {
+        isClampingRef.current = true
+        excalidrawAPI.updateScene({
+          elements: clamped as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['elements'],
+          captureUpdate: CaptureUpdateAction.NEVER
+        })
+        isClampingRef.current = false
+        activeElements = clamped
+      }
+
+      lastValidElementsRef.current = activeElements as unknown as readonly BoundedElement[]
 
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
@@ -38,14 +65,14 @@ export function ExcalidrawEditor(): React.JSX.Element {
 
       debounceTimerRef.current = setTimeout(() => {
         updatePageScene(targetPageId, {
-          elements,
+          elements: activeElements,
           appState: appState as unknown as Record<string, unknown>,
           files: files as unknown as Record<string, unknown>
         })
         debounceTimerRef.current = null
       }, 300)
     },
-    [updatePageScene]
+    [excalidrawAPI, updatePageScene]
   )
 
   // Clear debounce timer on unmount
@@ -107,6 +134,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
 
         // Isolate undo/redo history so edits on previous pages cannot be undone on the new page
         excalidrawAPI.history.clear()
+        lastValidElementsRef.current = (sceneElements as readonly BoundedElement[]) ?? []
       }
 
       isSwitchingRef.current = false
