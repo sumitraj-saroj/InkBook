@@ -1,6 +1,6 @@
-import { useMemo, useEffect, useRef } from 'react'
+import { useMemo, useEffect, useRef, useCallback } from 'react'
 import { Excalidraw, CaptureUpdateAction } from '@excalidraw/excalidraw'
-import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
+import type { ExcalidrawImperativeAPI, ExcalidrawProps } from '@excalidraw/excalidraw/types'
 import '@excalidraw/excalidraw/index.css'
 import { useTheme } from '../context/ThemeContext'
 import { useEditor } from '../context/EditorContext'
@@ -13,6 +13,8 @@ export function ExcalidrawEditor(): React.JSX.Element {
   const updatePageScene = useNotebookStore((s) => s.updatePageScene)
 
   const activePageIdRef = useRef<string>(currentPageId)
+  const isSwitchingRef = useRef<boolean>(false)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const initialData = useMemo(
     () => ({
@@ -23,13 +25,53 @@ export function ExcalidrawEditor(): React.JSX.Element {
     []
   )
 
+  // Debounced scene change handler to avoid excessive re-renders during active drawing
+  const handleSceneChange: NonNullable<ExcalidrawProps['onChange']> = useCallback(
+    (elements, appState, files): void => {
+      if (isSwitchingRef.current) return
+      const targetPageId = activePageIdRef.current
+      if (!targetPageId) return
+
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+
+      debounceTimerRef.current = setTimeout(() => {
+        updatePageScene(targetPageId, {
+          elements,
+          appState: appState as unknown as Record<string, unknown>,
+          files: files as unknown as Record<string, unknown>
+        })
+        debounceTimerRef.current = null
+      }, 300)
+    },
+    [updatePageScene]
+  )
+
+  // Clear debounce timer on unmount
+  useEffect(() => {
+    return (): void => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [])
+
   // Handle page transitions: save previous page scene, then load target page scene
   useEffect(() => {
     const prevPageId = activePageIdRef.current
     if (prevPageId === currentPageId) return
 
     if (excalidrawAPI && prevPageId) {
-      // 1. Save current scene of the previous page
+      isSwitchingRef.current = true
+
+      // Cancel any pending debounced save for the old page
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
+      }
+
+      // 1. Immediately save current scene of the previous page
       const elements = excalidrawAPI.getSceneElements()
       const appState = excalidrawAPI.getAppState()
       const files = excalidrawAPI.getFiles()
@@ -66,6 +108,8 @@ export function ExcalidrawEditor(): React.JSX.Element {
         // Isolate undo/redo history so edits on previous pages cannot be undone on the new page
         excalidrawAPI.history.clear()
       }
+
+      isSwitchingRef.current = false
     }
 
     activePageIdRef.current = currentPageId
@@ -79,6 +123,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
       <Excalidraw
         theme={theme}
         initialData={initialData}
+        onChange={handleSceneChange}
         excalidrawAPI={(api): void => {
           setExcalidrawAPI(api)
           api.history.clear()
