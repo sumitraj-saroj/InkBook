@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: inkbook
+appId: com.inkbook.app
+productName: InkBook
 directories:
   buildResources: resources
 files:
@@ -11,6 +11,12 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
   - resources/**
+fileAssociations:
+  - ext: inkbook
+    name: InkBook Notebook
+    description: InkBook Handwritten Notebook Document
+    mimeType: application/x-inkbook
+    role: Editor
 win:
   executableName: inkbook
 nsis:
@@ -31,10 +37,21 @@ dmg:
 linux:
   target:
     - AppImage
-    - snap
     - deb
-  maintainer: electronjs.org
-  category: Utility
+  maintainer: InkBook Developers
+  category: Office;Graphics;Utility
+  desktop:
+    Name: InkBook
+    Comment: Handwritten digital notebook powered by Excalidraw
+    GenericName: Digital Notebook
+    Exec: inkbook %U
+    Terminal: false
+    Type: Application
+    Icon: inkbook
+    Categories: Office;Graphics;Utility;
+    MimeType: application/x-inkbook;
+  mimeType:
+    - application/x-inkbook
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
