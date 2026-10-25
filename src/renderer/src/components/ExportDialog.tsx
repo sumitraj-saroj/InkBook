@@ -6,6 +6,7 @@ import {
   exportPageToPngDataUrl,
   exportPageToSvgString,
   exportPageToExcalidrawJson,
+  exportNotebookToPdf,
   type PngExportOptions,
   type SvgExportOptions
 } from '../utils/exportUtils'
@@ -31,6 +32,12 @@ export function ExportDialog({
   const [includeBackground, setIncludeBackground] = useState(true)
   const [transparent, setTransparent] = useState(false)
   const [scale, setScale] = useState<1 | 2 | 3>(2)
+  const [pdfTheme, setPdfTheme] = useState<'light' | 'dark'>(theme)
+  const [pdfProgress, setPdfProgress] = useState<{
+    current: number
+    total: number
+    status: string
+  } | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -153,6 +160,62 @@ export function ExportDialog({
         }
 
         onClose()
+      } else if (format === 'pdf') {
+        const liveScene = excalidrawAPI
+          ? {
+              elements: excalidrawAPI.getSceneElements(),
+              files: excalidrawAPI.getFiles() as Record<string, unknown>,
+              appState: excalidrawAPI.getAppState() as Record<string, unknown>
+            }
+          : undefined
+
+        const pdfBytes = await exportNotebookToPdf(
+          currentNotebook,
+          {
+            theme: pdfTheme,
+            onProgress: (progress): void => {
+              setPdfProgress(progress)
+            }
+          },
+          currentPageId,
+          liveScene
+        )
+
+        // Convert Uint8Array to base64
+        let binary = ''
+        const len = pdfBytes.byteLength
+        const chunkSize = 8192
+        for (let i = 0; i < len; i += chunkSize) {
+          const chunk = pdfBytes.subarray(i, i + chunkSize)
+          binary += String.fromCharCode.apply(null, chunk as unknown as number[])
+        }
+        const base64Data = window.btoa(binary)
+
+        const sanitizedName = currentNotebook.name.replace(/[^a-zA-Z0-9_-]/g, '_')
+        const result = await window.api.exportFile({
+          defaultName: `${sanitizedName}.pdf`,
+          filters: [
+            { name: 'PDF Documents', extensions: ['pdf'] },
+            { name: 'All Files', extensions: ['*'] }
+          ],
+          data: base64Data,
+          isBase64: true
+        })
+
+        if (result.canceled) {
+          setIsExporting(false)
+          setPdfProgress(null)
+          return
+        }
+
+        if (!result.success) {
+          setError(result.error ?? 'Export failed')
+          setIsExporting(false)
+          setPdfProgress(null)
+          return
+        }
+
+        onClose()
       }
     } catch (err) {
       console.error('Export error:', err)
@@ -167,16 +230,22 @@ export function ExportDialog({
       <div className="welcome-card export-dialog-card">
         <header className="welcome-header">
           <div className="welcome-badge">Export</div>
-          <h2 className="welcome-title">Export Current Page</h2>
+          <h2 className="welcome-title">
+            {format === 'pdf' ? 'Export Notebook as PDF' : 'Export Current Page'}
+          </h2>
           <p className="welcome-subtitle">
-            Export &ldquo;{activePage.title}&rdquo; ({activePage.size.width} ×{' '}
-            {activePage.size.height})
+            {format === 'pdf'
+              ? `Export "${currentNotebook.name}" (${currentNotebook.pages.length} ${
+                  currentNotebook.pages.length === 1 ? 'page' : 'pages'
+                })`
+              : `Export "${activePage.title}" (${activePage.size.width} × ${activePage.size.height})`}
           </p>
           <button
             className="welcome-close-btn"
             onClick={onClose}
             title="Close"
             aria-label="Close export dialog"
+            disabled={isExporting}
           >
             ✕
           </button>
@@ -278,6 +347,69 @@ export function ExportDialog({
                 elements and images. Page background patterns are excluded so the file is 100%
                 compatible with <strong>excalidraw.com</strong>.
               </p>
+            </div>
+          )}
+
+          {format === 'pdf' && (
+            <div className="export-options-box">
+              <p
+                className="export-info-text"
+                style={{
+                  margin: 0,
+                  fontSize: '12px',
+                  lineHeight: 1.5,
+                  color: 'var(--text-secondary)'
+                }}
+              >
+                Exports the entire notebook (
+                <strong>
+                  {currentNotebook.pages.length}{' '}
+                  {currentNotebook.pages.length === 1 ? 'page' : 'pages'}
+                </strong>
+                ) into a multi-page PDF document. Each page retains its preset size (A4/A5),
+                background rulings/grids, and drawings.
+              </p>
+
+              <div className="export-option-row" style={{ marginTop: '4px' }}>
+                <label className="export-sublabel">Paper Theme</label>
+                <div className="export-scale-selector">
+                  <button
+                    type="button"
+                    className={`scale-btn ${pdfTheme === 'light' ? 'active' : ''}`}
+                    onClick={(): void => setPdfTheme('light')}
+                    disabled={isExporting}
+                  >
+                    Light Paper
+                  </button>
+                  <button
+                    type="button"
+                    className={`scale-btn ${pdfTheme === 'dark' ? 'active' : ''}`}
+                    onClick={(): void => setPdfTheme('dark')}
+                    disabled={isExporting}
+                  >
+                    Dark Paper
+                  </button>
+                </div>
+              </div>
+
+              {isExporting && pdfProgress && (
+                <div className="export-progress-box">
+                  <div className="export-progress-status">
+                    <span>{pdfProgress.status}</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {Math.round((pdfProgress.current / pdfProgress.total) * 100)}%
+                    </span>
+                  </div>
+                  <div className="export-progress-bar-track">
+                    <div
+                      className="export-progress-bar-fill"
+                      style={{
+                        width: `${Math.round((pdfProgress.current / pdfProgress.total) * 100)}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

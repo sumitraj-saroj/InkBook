@@ -32,6 +32,7 @@ function Workspace(): React.JSX.Element {
 
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
+  const [exportFormat, setExportFormat] = useState<'png' | 'svg' | 'excalidraw' | 'pdf'>('png')
 
   const handleFitToWindow = useCallback((): void => {
     if (!excalidrawAPI) return
@@ -202,12 +203,19 @@ function Workspace(): React.JSX.Element {
           window.api.clearRecentFiles().catch(console.error)
           break
         case 'export-png':
+          setExportFormat('png')
           setIsExportOpen(true)
           break
         case 'export-svg':
+          setExportFormat('svg')
           setIsExportOpen(true)
           break
         case 'export-excalidraw':
+          setExportFormat('excalidraw')
+          setIsExportOpen(true)
+          break
+        case 'export-pdf':
+          setExportFormat('pdf')
           setIsExportOpen(true)
           break
         case 'save-notebook':
@@ -366,7 +374,12 @@ function Workspace(): React.JSX.Element {
         onOpenRecentPath={handleOpenRecentPath}
       />
 
-      <ExportDialog isOpen={isExportOpen} onClose={(): void => setIsExportOpen(false)} />
+      <ExportDialog
+        key={`${isExportOpen}-${exportFormat}`}
+        isOpen={isExportOpen}
+        initialFormat={exportFormat}
+        onClose={(): void => setIsExportOpen(false)}
+      />
     </div>
   )
 }

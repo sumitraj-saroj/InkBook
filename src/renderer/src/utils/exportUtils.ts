@@ -1,10 +1,12 @@
 import { exportToCanvas, exportToSvg, serializeAsJSON } from '@excalidraw/excalidraw'
 import type { BinaryFiles } from '@excalidraw/excalidraw/types'
+import { PDFDocument } from 'pdf-lib'
 import {
   getPageDimensions,
   drawPageBackgroundToCanvas,
   generateBackgroundSvgMarkup,
-  type Page
+  type Page,
+  type Notebook
 } from '@shared/index'
 
 export { drawPageBackgroundToCanvas, generateBackgroundSvgMarkup }
@@ -21,6 +23,14 @@ export interface SvgExportOptions {
   transparent?: boolean
   theme?: 'dark' | 'light'
 }
+
+export interface PdfExportProgress {
+  current: number
+  total: number
+  status: string
+}
+
+export type PdfProgressCallback = (progress: PdfExportProgress) => void
 
 /**
  * Renders a full InkBook page as an HTMLCanvasElement with scaling and background options.
@@ -228,4 +238,75 @@ export function exportPageToExcalidrawJson(
     files,
     'local'
   )
+}
+
+/**
+ * Assembles and exports the entire notebook as a multi-page PDF document.
+ * Each page is sized according to its preset, with its background and vector drawing elements.
+ */
+export async function exportNotebookToPdf(
+  notebook: Notebook,
+  options: {
+    theme?: 'dark' | 'light'
+    onProgress?: PdfProgressCallback
+  } = {},
+  activePageId?: string,
+  liveScene?: {
+    elements?: readonly unknown[]
+    files?: Record<string, unknown>
+    appState?: Record<string, unknown>
+  }
+): Promise<Uint8Array> {
+  const { theme = 'light', onProgress } = options
+  const pdfDoc = await PDFDocument.create()
+  const total = notebook.pages.length
+
+  for (let i = 0; i < total; i++) {
+    const page = notebook.pages[i]!
+    onProgress?.({
+      current: i + 1,
+      total,
+      status: `Rendering page ${i + 1} of ${total}: "${page.title}"...`
+    })
+
+    const isCurrentActive = page.id === activePageId
+    const sceneToUse = isCurrentActive ? liveScene : undefined
+
+    // Render high-DPI canvas (2x) of the page with its background pattern
+    const canvas = await renderPageToCanvas(
+      page,
+      {
+        includeBackground: true,
+        transparent: false,
+        scale: 2,
+        theme
+      },
+      sceneToUse
+    )
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
+    if (!blob) {
+      throw new Error(`Failed to generate PNG blob for page: ${page.title}`)
+    }
+
+    const pngBuffer = await blob.arrayBuffer()
+    const embeddedPng = await pdfDoc.embedPng(pngBuffer)
+
+    const dims = getPageDimensions(page)
+    const pdfPage = pdfDoc.addPage([dims.width, dims.height])
+    pdfPage.drawImage(embeddedPng, {
+      x: 0,
+      y: 0,
+      width: dims.width,
+      height: dims.height
+    })
+  }
+
+  onProgress?.({
+    current: total,
+    total,
+    status: 'Assembling multi-page PDF document...'
+  })
+
+  return pdfDoc.save()
 }

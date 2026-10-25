@@ -100,3 +100,34 @@ describe('Page export background canvas rendering', () => {
     expect(dotsSvg).toContain(`fill="${getBackgroundColors('dark').dot}"`)
   })
 })
+
+describe('Multi-page PDF Document Assembly', () => {
+  it('creates a multi-page PDF document with correct per-page dimensions', async () => {
+    const { PDFDocument } = await import('pdf-lib')
+    const pdfDoc = await PDFDocument.create()
+
+    // Page 1: A4 portrait (794 x 1123)
+    const page1 = pdfDoc.addPage([794, 1123])
+    expect(page1.getWidth()).toBe(794)
+    expect(page1.getHeight()).toBe(1123)
+
+    // Page 2: A5 landscape (794 x 559)
+    const page2 = pdfDoc.addPage([794, 559])
+    expect(page2.getWidth()).toBe(794)
+    expect(page2.getHeight()).toBe(559)
+
+    expect(pdfDoc.getPageCount()).toBe(2)
+
+    const pdfBytes = await pdfDoc.save()
+    expect(pdfBytes).toBeInstanceOf(Uint8Array)
+    expect(pdfBytes.byteLength).toBeGreaterThan(0)
+
+    // Verify loading the generated PDF back verifies the page count
+    const loadedDoc = await PDFDocument.load(pdfBytes)
+    expect(loadedDoc.getPageCount()).toBe(2)
+    expect(loadedDoc.getPage(0).getWidth()).toBe(794)
+    expect(loadedDoc.getPage(0).getHeight()).toBe(1123)
+    expect(loadedDoc.getPage(1).getWidth()).toBe(794)
+    expect(loadedDoc.getPage(1).getHeight()).toBe(559)
+  })
+})

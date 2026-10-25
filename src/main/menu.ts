@@ -118,6 +118,12 @@ export function setupApplicationMenu(): void {
             sendMenuAction(win as BrowserWindow | undefined, 'export-excalidraw')
           }
         },
+        {
+          label: 'Export Notebook as PDF...',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'export-pdf')
+          }
+        },
         { type: 'separator' },
         {
           label: 'Close Notebook',
