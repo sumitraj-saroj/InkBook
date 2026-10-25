@@ -13,6 +13,7 @@ import {
   loadRecoveryCopy,
   clearRecoveryCopy
 } from './notebookService'
+import { getRecentNotebooks, addRecentNotebook } from './settingsService'
 import type { Notebook } from '../shared/types'
 
 let mainWindowInstance: BrowserWindow | null = null
@@ -117,6 +118,7 @@ app.whenReady().then(() => {
       return { success: false, error: loaded.error, filePath: targetPath }
     }
 
+    await addRecentNotebook(targetPath)
     return { success: true, notebook: loaded.data, filePath: targetPath }
   })
 
@@ -136,6 +138,7 @@ app.whenReady().then(() => {
       return { success: false, error: saveResult.error, filePath: targetPath }
     }
 
+    await addRecentNotebook(targetPath)
     return { success: true, filePath: targetPath }
   })
 
@@ -151,6 +154,7 @@ app.whenReady().then(() => {
       return { success: false, error: saveResult.error, filePath: selected }
     }
 
+    await addRecentNotebook(selected)
     return { success: true, filePath: selected }
   })
 
@@ -192,7 +196,7 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('page:export', async (_event, _page, _format) => ({ success: true }))
-  ipcMain.handle('notebook:recent', async () => [])
+  ipcMain.handle('notebook:recent', async () => getRecentNotebooks())
 
   // Excalidraw open/save IPC handlers
   ipcMain.handle('excalidraw:open', async (event) => {
