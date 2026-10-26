@@ -1,16 +1,4 @@
-:root {
-  --bg-primary: #121214;
-  --bg-secondary: #1a1a1e;
-  --bg-tertiary: #26262b;
-  --border-color: #2e2e36;
-  --text-primary: #f4f4f5;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --sidebar-width: 240px;
-  --header-height: 48px;
-}
+@import '../../styles/tokens.css';
 
 * {
   box-sizing: border-box;
@@ -24,10 +12,12 @@ body,
   width: 100%;
   height: 100%;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  font-family: var(--font-ui);
+  background-color: var(--color-workspace);
+  color: var(--color-text);
   user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .app-container {
@@ -36,16 +26,8 @@ body,
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-}
-
-.app-container[data-theme='light'] {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
-  --border-color: #e2e8f0;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  background-color: var(--color-workspace);
+  color: var(--color-text);
 }
 
 .theme-toggle-btn,
