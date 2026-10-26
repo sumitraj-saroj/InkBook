@@ -7,6 +7,7 @@ export function EditorProvider({ children }: { children: ReactNode }): React.JSX
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null)
   const fitHandlerRef = useRef<(() => void) | null>(null)
   const [isAutoFit, setIsAutoFit] = useState<boolean>(true)
+  const [zoom, setZoom] = useState<number>(1)
 
   const setExcalidrawAPI = (api: ExcalidrawImperativeAPI | null): void => {
     apiRef.current = api
@@ -36,7 +37,9 @@ export function EditorProvider({ children }: { children: ReactNode }): React.JSX
         fitPage,
         registerFitHandler,
         isAutoFit,
-        setIsAutoFit
+        setIsAutoFit,
+        zoom,
+        setZoom
       }}
     >
       {children}

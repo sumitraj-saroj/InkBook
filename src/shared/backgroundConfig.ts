@@ -28,22 +28,34 @@ export const BACKGROUND_CONFIG: BackgroundConfig = {
   strokeWidth: 1,
   colors: {
     dark: {
-      paper: '#18181b',
-      ruledLine: 'rgba(255, 255, 255, 0.08)',
-      ruledMarginLine: 'rgba(244, 63, 94, 0.3)',
-      gridLine: 'rgba(255, 255, 255, 0.07)',
-      dot: 'rgba(255, 255, 255, 0.22)'
+      paper: '#1e1e24',
+      ruledLine: 'rgba(255, 255, 255, 0.15)',
+      ruledMarginLine: 'rgba(244, 63, 94, 0.38)',
+      gridLine: 'rgba(255, 255, 255, 0.14)',
+      dot: 'rgba(255, 255, 255, 0.18)'
     },
     light: {
       paper: '#ffffff',
       ruledLine: 'rgba(30, 41, 59, 0.12)',
       ruledMarginLine: 'rgba(239, 68, 68, 0.35)',
       gridLine: 'rgba(15, 23, 42, 0.08)',
-      dot: 'rgba(15, 23, 42, 0.25)'
+      dot: 'rgba(15, 23, 42, 0.22)'
     }
   }
 }
 
-export function getBackgroundColors(theme: 'dark' | 'light'): BackgroundThemeColors {
+export function getBackgroundColors(
+  theme: 'dark' | 'light',
+  paperColorInDarkMode: 'dark' | 'light' = 'dark'
+): BackgroundThemeColors {
+  if (theme === 'dark' && paperColorInDarkMode === 'light') {
+    return {
+      paper: '#f4f1e8',
+      ruledLine: 'rgba(0, 0, 0, 0.14)',
+      ruledMarginLine: 'rgba(225, 29, 72, 0.35)',
+      gridLine: 'rgba(0, 0, 0, 0.10)',
+      dot: 'rgba(0, 0, 0, 0.22)'
+    }
+  }
   return BACKGROUND_CONFIG.colors[theme]
 }

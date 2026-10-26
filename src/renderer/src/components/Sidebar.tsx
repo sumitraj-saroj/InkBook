@@ -6,15 +6,26 @@ import {
   type MouseEvent,
   type KeyboardEvent
 } from 'react'
+import { List, LayoutGrid, Plus, MoreHorizontal } from 'lucide-react'
 import { useNotebookStore } from '../store/notebookStore'
 import { PageContextMenu, type ContextMenuPosition } from './PageContextMenu'
 import { PageThumbnail } from './PageThumbnail'
+import { SegmentedControl } from './ui'
 
 export interface SidebarProps {
   onOpenPageSettings?: () => void
+  width?: number
+  isCollapsed?: boolean
+  onWidthChange?: (width: number) => void
+  onToggleCollapse?: () => void
 }
 
-export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element {
+export function Sidebar({
+  onOpenPageSettings,
+  width,
+  isCollapsed,
+  onWidthChange
+}: SidebarProps): React.JSX.Element {
   const pages = useNotebookStore((s) => s.currentNotebook.pages)
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const setCurrentPage = useNotebookStore((s) => s.setCurrentPage)
@@ -23,6 +34,22 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
   const renamePage = useNotebookStore((s) => s.renamePage)
   const duplicatePage = useNotebookStore((s) => s.duplicatePage)
   const reorderPages = useNotebookStore((s) => s.reorderPages)
+
+  const [localWidth, setLocalWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('inkbook-sidebar-width')
+      if (saved) {
+        const p = parseInt(saved, 10)
+        if (p >= 200 && p <= 360) return p
+      }
+    } catch {
+      // ignore
+    }
+    return 240
+  })
+
+  const activeWidth = width ?? localWidth
+  const activeCollapsed = Boolean(isCollapsed)
 
   const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null)
   const [renamingPageId, setRenamingPageId] = useState<string | null>(null)
@@ -39,7 +66,38 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
     }
     return 'list'
   })
+  const [isResizing, setIsResizing] = useState(false)
   const renameInputRef = useRef<HTMLInputElement>(null)
+
+  const handleStartResize = (e: MouseEvent<HTMLDivElement>): void => {
+    e.preventDefault()
+    setIsResizing(true)
+    const startX = e.clientX
+    const startWidth = activeWidth
+
+    const handleMouseMove = (moveEvent: globalThis.MouseEvent): void => {
+      const delta = moveEvent.clientX - startX
+      const nextWidth = Math.max(200, Math.min(360, startWidth + delta))
+      if (onWidthChange) {
+        onWidthChange(nextWidth)
+      } else {
+        setLocalWidth(nextWidth)
+      }
+    }
+
+    const handleMouseUp = (): void => {
+      setIsResizing(false)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
 
   useEffect(() => {
     window.api
@@ -168,33 +226,30 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
   }
 
   return (
-    <aside className="sidebar">
+    <aside
+      className={`sidebar ${activeCollapsed ? 'is-collapsed' : ''} ${isResizing ? 'is-resizing' : ''}`}
+      style={{
+        width: activeCollapsed ? 0 : activeWidth,
+        minWidth: activeCollapsed ? 0 : activeWidth,
+        maxWidth: activeCollapsed ? 0 : activeWidth
+      }}
+      aria-hidden={activeCollapsed}
+    >
       <div className="sidebar-header">
-        <span className="sidebar-title">Pages</span>
-        <div className="sidebar-view-toggle">
-          <button
-            type="button"
-            className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={(): void => handleSetViewMode('list')}
-            title="List view"
-            aria-label="List view"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className={`view-toggle-btn ${viewMode === 'thumbnail' ? 'active' : ''}`}
-            onClick={(): void => handleSetViewMode('thumbnail')}
-            title="Thumbnail view"
-            aria-label="Thumbnail view"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z" />
-            </svg>
-          </button>
-        </div>
+        <span className="sidebar-title">PAGES</span>
+        <SegmentedControl
+          value={viewMode}
+          onChange={handleSetViewMode}
+          options={[
+            { value: 'list', icon: List, title: 'List view', ariaLabel: 'List view' },
+            {
+              value: 'thumbnail',
+              icon: LayoutGrid,
+              title: 'Thumbnail view',
+              ariaLabel: 'Thumbnail view'
+            }
+          ]}
+        />
       </div>
 
       <div
@@ -293,7 +348,7 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
                         aria-label="Page options"
                         onClick={(e): void => handleOpenContextMenu(e, page.id, index)}
                       >
-                        •••
+                        <MoreHorizontal size={15} strokeWidth={1.75} aria-hidden="true" />
                       </button>
                     )}
                   </div>
@@ -301,9 +356,9 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
               ) : (
                 <>
                   <div className="page-item-main">
+                    <span className="page-number">{index + 1}</span>
                     <PageThumbnail page={page} className="sidebar-list-thumb" />
                     <div className="page-label">
-                      <span className="page-number">{index + 1}.</span>
                       {isRenaming ? (
                         <input
                           ref={renameInputRef}
@@ -334,7 +389,7 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
                       aria-label="Page options"
                       onClick={(e): void => handleOpenContextMenu(e, page.id, index)}
                     >
-                      •••
+                      <MoreHorizontal size={15} strokeWidth={1.75} aria-hidden="true" />
                     </button>
                   )}
                 </>
@@ -350,18 +405,17 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
           onClick={(): void => {
             addPage()
           }}
-          title="Add a new page"
+          title="Add page (Ctrl+Shift+N)"
         >
-          <span className="btn-add-icon">+</span>
+          <Plus size={16} strokeWidth={1.75} aria-hidden="true" />
           <span>Add page</span>
         </button>
       </div>
 
       <div className="sidebar-footer">
-        <span>
-          {pages.length} {pages.length === 1 ? 'Page' : 'Pages'}
+        <span className="sidebar-page-count">
+          {pages.length} {pages.length === 1 ? 'page' : 'pages'}
         </span>
-        <span>{viewMode === 'list' ? 'List' : 'Thumbnails'}</span>
       </div>
 
       {contextMenu && (
@@ -377,6 +431,15 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
           onMoveUp={(idx): void => reorderPages(idx, idx - 1)}
           onMoveDown={(idx): void => reorderPages(idx, idx + 1)}
           onOpenPageSettings={(): void => onOpenPageSettings?.()}
+        />
+      )}
+
+      {!activeCollapsed && (
+        <div
+          className="sidebar-resize-handle"
+          onMouseDown={handleStartResize}
+          title="Drag to resize sidebar (200px - 360px)"
+          aria-label="Resize sidebar"
         />
       )}
     </aside>

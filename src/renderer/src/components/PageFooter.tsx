@@ -1,5 +1,23 @@
-import { type JSX } from 'react'
+import { useCallback, type JSX, type ReactNode } from 'react'
+import {
+  Minus,
+  Plus,
+  Undo2,
+  Redo2,
+  ChevronLeft,
+  ChevronRight,
+  AlignLeft,
+  Grid3X3,
+  CircleDot,
+  Square,
+  ChevronUp
+} from 'lucide-react'
+import { CaptureUpdateAction } from '@excalidraw/excalidraw'
+import type { AppState } from '@excalidraw/excalidraw/types'
 import { useNotebookStore } from '../store/notebookStore'
+import { useEditor } from '../context/EditorContext'
+import { Pill, PillButton, PillDivider, Menu, type MenuItemType } from './ui'
+import type { PageBackground } from '@shared/types'
 
 export interface PageFooterProps {
   onPrevPage: () => void
@@ -18,6 +36,9 @@ export function PageFooter({
 }: PageFooterProps): JSX.Element {
   const pages = useNotebookStore((s) => s.currentNotebook.pages)
   const currentPageId = useNotebookStore((s) => s.currentPageId)
+  const setPageBackground = useNotebookStore((s) => s.setPageBackground)
+
+  const { excalidrawAPI, zoom, setZoom } = useEditor()
 
   const currentIndex = pages.findIndex((p) => p.id === currentPageId)
   const totalPages = Math.max(1, pages.length)
@@ -29,103 +50,238 @@ export function PageFooter({
   const sizeLabel = activePage
     ? activePage.size.preset === 'custom'
       ? `${activePage.size.width}×${activePage.size.height}`
-      : `${activePage.size.preset} ${activePage.orientation === 'landscape' ? 'Land.' : 'Port.'}`
-    : 'A4'
+      : `${activePage.size.preset} ${activePage.orientation === 'landscape' ? 'Landscape' : 'Portrait'}`
+    : 'A4 Portrait'
+
+  const currentBg: PageBackground = activePage?.background ?? 'ruled'
+  const bgNames: Record<PageBackground, string> = {
+    ruled: 'Ruled',
+    grid: 'Grid',
+    dots: 'Dots',
+    blank: 'Blank'
+  }
+  const bgIcons: Record<PageBackground, typeof AlignLeft> = {
+    ruled: AlignLeft,
+    grid: Grid3X3,
+    dots: CircleDot,
+    blank: Square
+  }
+  const CurrentBgIcon = bgIcons[currentBg] ?? AlignLeft
+
+  const handleZoomOut = useCallback((): void => {
+    if (excalidrawAPI) {
+      const appState = excalidrawAPI.getAppState()
+      const current = appState.zoom?.value ?? 1
+      const next = Math.max(0.1, Number((current / 1.2).toFixed(2)))
+      excalidrawAPI.updateScene({
+        appState: {
+          zoom: { value: next as unknown as NonNullable<AppState['zoom']>['value'] }
+        } as unknown as Parameters<typeof excalidrawAPI.updateScene>[0]['appState'],
+        captureUpdate: CaptureUpdateAction.NEVER
+      })
+      setZoom(next)
+    }
+  }, [excalidrawAPI, setZoom])
+
+  const handleZoomIn = useCallback((): void => {
+    if (excalidrawAPI) {
+      const appState = excalidrawAPI.getAppState()
+      const current = appState.zoom?.value ?? 1
+      const next = Math.min(5.0, Number((current * 1.2).toFixed(2)))
+      excalidrawAPI.updateScene({
+        appState: {
+          zoom: { value: next as unknown as NonNullable<AppState['zoom']>['value'] }
+        } as unknown as Parameters<typeof excalidrawAPI.updateScene>[0]['appState'],
+        captureUpdate: CaptureUpdateAction.NEVER
+      })
+      setZoom(next)
+    }
+  }, [excalidrawAPI, setZoom])
+
+  const handleResetZoom = useCallback((): void => {
+    if (excalidrawAPI) {
+      excalidrawAPI.updateScene({
+        appState: {
+          zoom: { value: 1 as unknown as NonNullable<AppState['zoom']>['value'] }
+        } as unknown as Parameters<typeof excalidrawAPI.updateScene>[0]['appState'],
+        captureUpdate: CaptureUpdateAction.NEVER
+      })
+      setZoom(1)
+    }
+  }, [excalidrawAPI, setZoom])
+
+  const handleUndo = useCallback((): void => {
+    const btn = document.querySelector<HTMLButtonElement>(
+      '.excalidraw .undo-button-container button, .excalidraw button[aria-label*="Undo"], .excalidraw button[aria-label*="undo"]'
+    )
+    if (btn) {
+      btn.click()
+      return
+    }
+    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform)
+    const target = document.querySelector('.excalidraw') || window
+    target.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'z',
+        code: 'KeyZ',
+        ctrlKey: !isMac,
+        metaKey: isMac,
+        bubbles: true
+      })
+    )
+  }, [])
+
+  const handleRedo = useCallback((): void => {
+    const btn = document.querySelector<HTMLButtonElement>(
+      '.excalidraw .redo-button-container button, .excalidraw button[aria-label*="Redo"], .excalidraw button[aria-label*="redo"]'
+    )
+    if (btn) {
+      btn.click()
+      return
+    }
+    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform)
+    const target = document.querySelector('.excalidraw') || window
+    target.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'y',
+        code: 'KeyY',
+        ctrlKey: !isMac,
+        metaKey: isMac,
+        bubbles: true
+      })
+    )
+  }, [])
+
+  const backgroundMenuItems: MenuItemType[] = [
+    {
+      label: 'Ruled',
+      icon: AlignLeft,
+      onClick: (): void => {
+        if (currentPageId) setPageBackground(currentPageId, 'ruled')
+      }
+    },
+    {
+      label: 'Grid',
+      icon: Grid3X3,
+      onClick: (): void => {
+        if (currentPageId) setPageBackground(currentPageId, 'grid')
+      }
+    },
+    {
+      label: 'Dots',
+      icon: CircleDot,
+      onClick: (): void => {
+        if (currentPageId) setPageBackground(currentPageId, 'dots')
+      }
+    },
+    {
+      label: 'Blank',
+      icon: Square,
+      onClick: (): void => {
+        if (currentPageId) setPageBackground(currentPageId, 'blank')
+      }
+    }
+  ]
 
   return (
-    <footer className="page-footer" role="region" aria-label="Page navigation">
-      <div className="page-footer-nav">
-        <button
-          className="footer-btn"
-          onClick={onPrevPage}
-          disabled={isFirst}
-          title="Previous page (Ctrl+PageUp)"
-          aria-label="Previous page"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+    <footer className="page-footer" role="region" aria-label="Page navigation and canvas controls">
+      {/* Bottom-left pill: zoom out, zoom %, zoom in, Fit, undo, redo */}
+      <div className="page-footer-left">
+        <Pill className="page-footer-pill page-footer-pill--canvas">
+          <PillButton icon={Minus} onClick={handleZoomOut} tooltip="Zoom out" shortcut="Ctrl+-" />
+          <PillButton
+            onClick={handleResetZoom}
+            tooltip="Reset zoom to 100%"
+            shortcut="Ctrl+0"
+            className="footer-zoom-btn"
           >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
+            <span>{Math.round(zoom * 100)}%</span>
+          </PillButton>
+          <PillButton icon={Plus} onClick={handleZoomIn} tooltip="Zoom in" shortcut="Ctrl++" />
 
-        <span className="footer-page-indicator" title="Current page number and total pages">
-          Page <strong>{currentIndex + 1}</strong> / {totalPages}
-        </span>
+          <PillDivider />
 
-        <button
-          className="footer-btn"
-          onClick={onNextPage}
-          disabled={isLast}
-          title="Next page (Ctrl+PageDown)"
-          aria-label="Next page"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <PillButton
+            onClick={onFitPage}
+            tooltip="Fit page to window"
+            shortcut="Ctrl+0"
+            className="footer-fit-btn"
           >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
+            <span>Fit</span>
+            <span className="sr-only"> page</span>
+          </PillButton>
+
+          <PillDivider />
+
+          <PillButton icon={Undo2} onClick={handleUndo} tooltip="Undo" shortcut="Ctrl+Z" />
+          <PillButton icon={Redo2} onClick={handleRedo} tooltip="Redo" shortcut="Ctrl+Y" />
+        </Pill>
       </div>
 
-      <div className="footer-separator" />
+      {/* Bottom-center pill: prev, page indicator, next, add page, background selector, size settings */}
+      <div className="page-footer-center">
+        <Pill className="page-footer-pill page-footer-pill--nav">
+          <PillButton
+            icon={ChevronLeft}
+            onClick={onPrevPage}
+            disabled={isFirst}
+            tooltip="Previous page"
+            shortcut="Ctrl+PageUp"
+          />
 
-      <button
-        className="footer-btn"
-        onClick={onAddPage}
-        title="Add new page (Ctrl+Shift+N)"
-        aria-label="Add new page"
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
+          <span className="footer-page-indicator" title="Current page number and total pages">
+            Page <strong>{currentIndex + 1}</strong> / {totalPages}
+          </span>
 
-      <div className="footer-separator" />
+          <PillButton
+            icon={ChevronRight}
+            onClick={onNextPage}
+            disabled={isLast}
+            tooltip="Next page"
+            shortcut="Ctrl+PageDown"
+          />
 
-      {onOpenSettings && (
-        <button
-          className="footer-badge-btn"
-          onClick={onOpenSettings}
-          title="Page size & background settings"
-          aria-label="Page settings"
-        >
-          <span>{sizeLabel}</span>
-        </button>
-      )}
+          <PillDivider />
 
-      <button
-        className="footer-fit-btn"
-        onClick={onFitPage}
-        title="Fit page to window (Ctrl+0)"
-        aria-label="Fit page"
-      >
-        Fit
-      </button>
+          <PillButton icon={Plus} onClick={onAddPage} tooltip="Add page" shortcut="Ctrl+Shift+N" />
+
+          <PillDivider />
+
+          <Menu
+            align="left"
+            placement="top"
+            width={160}
+            trigger={({ isOpen, toggle, ref }): ReactNode => (
+              <PillButton
+                ref={ref}
+                onClick={toggle}
+                active={isOpen}
+                tooltip="Change paper background"
+                aria-label="Paper background"
+                className="footer-bg-btn"
+              >
+                <CurrentBgIcon size={14} strokeWidth={1.75} aria-hidden="true" />
+                <span>{bgNames[currentBg]}</span>
+                <ChevronUp size={12} strokeWidth={1.75} aria-hidden="true" />
+              </PillButton>
+            )}
+            items={backgroundMenuItems}
+          />
+
+          <PillDivider />
+
+          {onOpenSettings && (
+            <PillButton
+              onClick={onOpenSettings}
+              tooltip="Page size & orientation settings"
+              aria-label="Page settings"
+              className="footer-size-chip"
+            >
+              <span>{sizeLabel}</span>
+            </PillButton>
+          )}
+        </Pill>
+      </div>
     </footer>
   )
 }

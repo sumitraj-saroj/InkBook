@@ -9,6 +9,8 @@ export interface EditorContextValue {
   registerFitHandler: (fn: () => void) => () => void
   isAutoFit: boolean
   setIsAutoFit: (autoFit: boolean) => void
+  zoom: number
+  setZoom: (zoom: number) => void
 }
 
 export const EditorContext = createContext<EditorContextValue | null>(null)

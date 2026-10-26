@@ -1,9 +1,11 @@
 import { useMemo, useEffect, useRef, useCallback, useState } from 'react'
-import { Excalidraw, CaptureUpdateAction } from '@excalidraw/excalidraw'
+import { Excalidraw, CaptureUpdateAction, MainMenu } from '@excalidraw/excalidraw'
+import { PenTool, X } from 'lucide-react'
 import type {
   ExcalidrawImperativeAPI,
   ExcalidrawProps,
-  AppState
+  AppState,
+  UIOptions
 } from '@excalidraw/excalidraw/types'
 import '@excalidraw/excalidraw/index.css'
 import { useTheme } from '../context/ThemeContext'
@@ -14,6 +16,7 @@ import {
   getPageDimensions,
   computeFitViewport,
   clampViewport,
+  CANVAS_SAFE_INSETS,
   type BoundedElement,
   type Insets
 } from '@shared/index'
@@ -21,8 +24,8 @@ import { PageOverlay } from './PageOverlay'
 import { PageBackground } from './PageBackground'
 
 export function ExcalidrawEditor(): React.JSX.Element {
-  const { theme } = useTheme()
-  const { excalidrawAPI, setExcalidrawAPI, registerFitHandler, isAutoFit, setIsAutoFit } =
+  const { theme, paperColorInDarkMode } = useTheme()
+  const { excalidrawAPI, setExcalidrawAPI, registerFitHandler, isAutoFit, setIsAutoFit, setZoom } =
     useEditor()
   const currentNotebook = useNotebookStore((s) => s.currentNotebook)
   const currentPageId = useNotebookStore((s) => s.currentPageId)
@@ -56,10 +59,45 @@ export function ExcalidrawEditor(): React.JSX.Element {
     zoom: 1
   })
 
+  const [showEmptyHint, setShowEmptyHint] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('inkbook-empty-hint-dismissed') !== 'true'
+    } catch {
+      return true
+    }
+  })
+
+  const isPageEmpty = !activePage?.scene.elements || activePage.scene.elements.length === 0
+  const shouldShowEmptyHint = showEmptyHint && isPageEmpty
+
+  const dismissEmptyHint = useCallback((): void => {
+    setShowEmptyHint(false)
+    try {
+      localStorage.setItem('inkbook-empty-hint-dismissed', 'true')
+    } catch {
+      // ignore
+    }
+  }, [])
+
   const initialData = useMemo(
     () => ({
       appState: {
         viewBackgroundColor: 'transparent'
+      }
+    }),
+    []
+  )
+
+  const uiOptions: Partial<UIOptions> = useMemo(
+    () => ({
+      canvasActions: {
+        changeViewBackgroundColor: false,
+        clearCanvas: false,
+        export: false,
+        loadScene: false,
+        saveToActiveFile: false,
+        toggleTheme: false,
+        saveAsImage: false
       }
     }),
     []
@@ -79,13 +117,13 @@ export function ExcalidrawEditor(): React.JSX.Element {
     )
     const footerEl = document.querySelector('.page-footer')
 
-    let topInset = 60
+    let topInset: number = CANVAS_SAFE_INSETS.top
     if (toolbarEl) {
       const tbRect = toolbarEl.getBoundingClientRect()
       topInset = tbRect.bottom - containerRect.top
     }
 
-    let bottomInset = 55
+    let bottomInset: number = CANVAS_SAFE_INSETS.bottom
     if (footerEl) {
       const fRect = footerEl.getBoundingClientRect()
       bottomInset = containerRect.bottom - fRect.top
@@ -94,8 +132,8 @@ export function ExcalidrawEditor(): React.JSX.Element {
     const insets: Insets = {
       top: topInset,
       bottom: bottomInset,
-      left: 16,
-      right: 16
+      left: CANVAS_SAFE_INSETS.left,
+      right: CANVAS_SAFE_INSETS.right
     }
 
     const canvasWidth = containerRef.current.clientWidth || 1000
@@ -125,12 +163,41 @@ export function ExcalidrawEditor(): React.JSX.Element {
       scrollY: fit.scrollY,
       zoom: fit.zoom
     })
-  }, [excalidrawAPI])
+    setZoom(fit.zoom)
+  }, [excalidrawAPI, setZoom])
 
   // Register fit handler with EditorContext so topbar, footer, shortcuts, and commands use it
   useEffect(() => {
     return registerFitHandler(fitViewport)
   }, [registerFitHandler, fitViewport])
+
+  // Synchronize stroke color contrast when paper color in dark mode changes
+  useEffect(() => {
+    if (!excalidrawAPI) return
+    const appState = excalidrawAPI.getAppState()
+    const isLightPaper = theme === 'light' || paperColorInDarkMode === 'light'
+    const targetStroke = isLightPaper ? '#1e1e24' : '#ffffff'
+
+    const currentStroke = appState.currentItemStrokeColor
+    if (isLightPaper && (currentStroke === '#ffffff' || currentStroke === '#f4f4f5')) {
+      excalidrawAPI.updateScene({
+        appState: {
+          currentItemStrokeColor: targetStroke
+        } as unknown as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['appState'],
+        captureUpdate: CaptureUpdateAction.NEVER
+      })
+    } else if (
+      !isLightPaper &&
+      (currentStroke === '#1e1e24' || currentStroke === '#000000' || currentStroke === '#1e1e1e')
+    ) {
+      excalidrawAPI.updateScene({
+        appState: {
+          currentItemStrokeColor: targetStroke
+        } as unknown as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['appState'],
+        captureUpdate: CaptureUpdateAction.NEVER
+      })
+    }
+  }, [theme, paperColorInDarkMode, excalidrawAPI])
 
   // ResizeObserver: auto-fit when window or container resizes if in auto-fit mode
   useEffect(() => {
@@ -237,6 +304,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
           prev.scrollY !== finalAppState.scrollY ||
           prev.zoom !== currentZoom
         ) {
+          setZoom(currentZoom)
           return {
             scrollX: finalAppState.scrollX,
             scrollY: finalAppState.scrollY,
@@ -259,7 +327,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
         debounceTimerRef.current = null
       }, 300)
     },
-    [excalidrawAPI, updatePageScene, viewport, setIsAutoFit]
+    [excalidrawAPI, updatePageScene, viewport, setIsAutoFit, setZoom]
   )
 
   // Clear debounce timer on unmount
@@ -320,7 +388,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
         const fit = computeFitViewport(
           targetDims,
           { width: vpW, height: vpH },
-          { top: 70, bottom: 60, left: 16, right: 16 },
+          CANVAS_SAFE_INSETS,
           20
         )
 
@@ -363,13 +431,14 @@ export function ExcalidrawEditor(): React.JSX.Element {
           scrollY,
           zoom: zoomVal
         })
+        setZoom(zoomVal)
       }
 
       isSwitchingRef.current = false
     }
 
     activePageIdRef.current = currentPageId
-  }, [currentNotebook.id, currentPageId, excalidrawAPI, updatePageScene])
+  }, [currentNotebook.id, currentPageId, excalidrawAPI, updatePageScene, setZoom])
 
   // Dev-only debug hook for Playwright / E2E test harness (stripped in production builds)
   useEffect(() => {
@@ -427,6 +496,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
       <Excalidraw
         theme={theme}
         initialData={initialData}
+        UIOptions={uiOptions}
         onChange={handleSceneChange}
         excalidrawAPI={(api): void => {
           setExcalidrawAPI(api)
@@ -436,7 +506,33 @@ export function ExcalidrawEditor(): React.JSX.Element {
             fitViewport()
           }, 60)
         }}
-      />
+      >
+        <MainMenu>{null}</MainMenu>
+      </Excalidraw>
+      {shouldShowEmptyHint && (
+        <div
+          className="empty-page-hint"
+          onClick={dismissEmptyHint}
+          role="status"
+          aria-label="Empty page hint"
+        >
+          <PenTool size={14} strokeWidth={1.75} aria-hidden="true" />
+          <span>
+            Start drawing, or press <kbd>Ctrl+K</kbd> for commands
+          </span>
+          <button
+            type="button"
+            className="empty-page-hint-close"
+            onClick={(e): void => {
+              e.stopPropagation()
+              dismissEmptyHint()
+            }}
+            aria-label="Dismiss hint"
+          >
+            <X size={12} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

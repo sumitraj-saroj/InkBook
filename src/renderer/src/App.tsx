@@ -1,10 +1,10 @@
 import { useEffect, useCallback, useState } from 'react'
-import { serializeAsJSON, CaptureUpdateAction } from '@excalidraw/excalidraw'
+import { CaptureUpdateAction } from '@excalidraw/excalidraw'
 import type { AppState } from '@excalidraw/excalidraw/types'
 import { ExcalidrawEditor } from './components/ExcalidrawEditor'
-import { NotebookTitle } from './components/NotebookTitle'
+import { TopBar } from './components/TopBar'
+import { AboutDialog } from './components/AboutDialog'
 import { Sidebar } from './components/Sidebar'
-import { BackgroundPicker } from './components/BackgroundPicker'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { ExportDialog } from './components/ExportDialog'
 import { CommandPalette } from './components/CommandPalette'
@@ -31,7 +31,7 @@ import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 function Workspace(): React.JSX.Element {
   useAutosave()
   useRecovery()
-  const { theme, themePreference, toggleTheme } = useTheme()
+  const { theme } = useTheme()
   const { excalidrawAPI, fitPage } = useEditor()
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const currentNotebook = useNotebookStore((s) => s.currentNotebook)
@@ -51,6 +51,76 @@ function Workspace(): React.JSX.Element {
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
   const [isPageSettingsOpen, setIsPageSettingsOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [isAboutOpen, setIsAboutOpen] = useState(false)
+
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('inkbook-sidebar-width')
+      if (saved) {
+        const p = parseInt(saved, 10)
+        if (p >= 200 && p <= 360) return p
+      }
+    } catch {
+      // ignore
+    }
+    return 240
+  })
+
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('inkbook-sidebar-collapsed')
+      if (saved) return saved === 'true'
+    } catch {
+      // ignore
+    }
+    return false
+  })
+
+  useEffect(() => {
+    window.api
+      ?.getSettings?.()
+      .then((settings) => {
+        if (
+          typeof settings?.sidebarWidth === 'number' &&
+          settings.sidebarWidth >= 200 &&
+          settings.sidebarWidth <= 360
+        ) {
+          setSidebarWidth(settings.sidebarWidth)
+        }
+        if (typeof settings?.sidebarCollapsed === 'boolean') {
+          setIsSidebarCollapsed(settings.sidebarCollapsed)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const handleToggleSidebar = useCallback((): void => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('inkbook-sidebar-collapsed', String(next))
+      } catch {
+        // ignore
+      }
+      window.api?.saveSettings?.({ sidebarCollapsed: next }).catch(() => {})
+      return next
+    })
+  }, [])
+
+  const handleSidebarWidthChange = useCallback((newWidth: number): void => {
+    setSidebarWidth(newWidth)
+    try {
+      localStorage.setItem('inkbook-sidebar-width', String(newWidth))
+    } catch {
+      // ignore
+    }
+    window.api?.saveSettings?.({ sidebarWidth: newWidth }).catch(() => {})
+  }, [])
+
+  const handleOpenExport = useCallback((format: 'png' | 'svg' | 'pdf' | 'excalidraw'): void => {
+    setExportFormat(format)
+    setIsExportOpen(true)
+  }, [])
 
   const handleSelectSearchResult = useCallback(
     (result: SearchResult): void => {
@@ -299,6 +369,9 @@ function Workspace(): React.JSX.Element {
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault()
         setIsSearchOpen((prev) => !prev)
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault()
+        handleToggleSidebar()
       }
     }
 
@@ -312,6 +385,7 @@ function Workspace(): React.JSX.Element {
     handleNewNotebook,
     handleNextPage,
     handlePrevPage,
+    handleToggleSidebar,
     addPage
   ])
 
@@ -466,96 +540,33 @@ function Workspace(): React.JSX.Element {
     }
   }, [handleSaveNotebook])
 
-  const handleSave = async (): Promise<void> => {
-    if (!excalidrawAPI) return
-    const elements = excalidrawAPI.getSceneElements()
-    const appState = excalidrawAPI.getAppState()
-    const files = excalidrawAPI.getFiles()
-
-    const json = serializeAsJSON(elements, appState, files, 'local')
-    await window.api.saveExcalidrawFile(json)
-  }
-
   return (
     <div className="app-container" data-theme={theme}>
       {/* Top Bar: Notebook title at top-left and actions */}
-      <header className="topbar">
-        <div className="notebook-meta">
-          <span className="notebook-badge">InkBook</span>
-          <NotebookTitle />
-        </div>
-        <div className="app-actions">
-          <button
-            className="action-btn"
-            onClick={(): void => setIsWelcomeOpen(true)}
-            title="Open Welcome screen"
-          >
-            Welcome
-          </button>
-          <button className="action-btn" onClick={handleNewNotebook} title="New notebook (Ctrl+N)">
-            New
-          </button>
-          <button
-            className="action-btn"
-            onClick={handleOpenNotebook}
-            title="Open notebook (Ctrl+O)"
-          >
-            Open
-          </button>
-          <button
-            className="action-btn"
-            onClick={handleSaveNotebook}
-            title={`Save notebook (Ctrl+S)${isDirty ? ' •' : ''}`}
-          >
-            Save{isDirty ? ' •' : ''}
-          </button>
-          <BackgroundPicker />
-          <button className="action-btn" onClick={fitPage} title="Fit page to window (Ctrl+0)">
-            Fit page
-          </button>
-          <button
-            className="action-btn"
-            onClick={handleImportIntoCurrentPage}
-            title="Import an Excalidraw drawing into the current page"
-          >
-            Open .excalidraw
-          </button>
-          <button className="action-btn" onClick={handleSave} title="Save drawing as .excalidraw">
-            Save .excalidraw
-          </button>
-          <button
-            className="action-btn"
-            onClick={(): void => setIsExportOpen(true)}
-            title="Export page or notebook"
-          >
-            Export
-          </button>
-          <button
-            className="action-btn"
-            onClick={(): void => setIsSearchOpen(true)}
-            title="Search notebook pages and text (Ctrl+F)"
-          >
-            Search
-          </button>
-          <button
-            className="theme-toggle-btn"
-            onClick={toggleTheme}
-            title={`Theme preference: ${themePreference === 'system' ? `System (${theme})` : themePreference} (Click to cycle)`}
-          >
-            Theme:{' '}
-            {themePreference === 'system'
-              ? `System (${theme === 'dark' ? 'Dark' : 'Light'})`
-              : theme === 'dark'
-                ? 'Dark'
-                : 'Light'}
-          </button>
-        </div>
-      </header>
+      <TopBar
+        onSearch={(): void => setIsCommandPaletteOpen(true)}
+        onExport={handleOpenExport}
+        onNewNotebook={handleNewNotebook}
+        onOpenNotebook={handleOpenNotebook}
+        onSaveAsNotebook={handleSaveAsNotebook}
+        onImportAsNewPage={handleImportAsNewPage}
+        onImportIntoCurrentPage={handleImportIntoCurrentPage}
+        onImportLibrary={handleImportLibrary}
+        onOpenWelcome={(): void => setIsWelcomeOpen(true)}
+        onOpenShortcuts={(): void => setIsShortcutsHelpOpen(true)}
+        onOpenAbout={(): void => setIsAboutOpen(true)}
+      />
 
       {/* Main workspace with 2-panel layout */}
       <div className="workspace-body">
         {/* Left Sidebar */}
-        <Sidebar onOpenPageSettings={(): void => setIsPageSettingsOpen(true)} />
+        <Sidebar
+          onOpenPageSettings={(): void => setIsPageSettingsOpen(true)}
+          width={sidebarWidth}
+          isCollapsed={isSidebarCollapsed}
+          onWidthChange={handleSidebarWidthChange}
+          onToggleCollapse={handleToggleSidebar}
+        />
 
         {/* Main Content Area */}
         <main className="canvas-area">
@@ -629,6 +640,8 @@ function Workspace(): React.JSX.Element {
         isOpen={isShortcutsHelpOpen}
         onClose={(): void => setIsShortcutsHelpOpen(false)}
       />
+
+      <AboutDialog isOpen={isAboutOpen} onClose={(): void => setIsAboutOpen(false)} />
     </div>
   )
 }

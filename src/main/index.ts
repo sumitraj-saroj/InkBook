@@ -62,8 +62,9 @@ function createWindow(): void {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    backgroundColor: '#121212',
+    backgroundColor: '#111114',
     show: false,
+    autoHideMenuBar: true,
     title: 'Untitled Notebook - InkBook',
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
@@ -319,6 +320,14 @@ app.whenReady().then(() => {
       }
     }
   )
+  ipcMain.handle('file:stat', async (_, filePath: string) => {
+    try {
+      const stats = await fs.stat(filePath)
+      return { mtimeMs: stats.mtimeMs, size: stats.size }
+    } catch {
+      return null
+    }
+  })
   ipcMain.handle('notebook:recent', async () => getRecentNotebooks())
   ipcMain.handle('app:initial-file', async () => initialFileArgument)
   ipcMain.handle('notebook:clear-recent', async () => {

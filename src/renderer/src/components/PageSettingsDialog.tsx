@@ -12,6 +12,7 @@ import {
 } from '@shared/index'
 import { useNotebookStore } from '../store/notebookStore'
 import { useEditor } from '../context/EditorContext'
+import { useTheme } from '../context/ThemeContext'
 import { CaptureUpdateAction } from '@excalidraw/excalidraw'
 
 export interface PageSettingsDialogProps {
@@ -30,6 +31,7 @@ export function PageSettingsDialog({
   const updatePageSettings = useNotebookStore((s) => s.updatePageSettings)
   const updatePageScene = useNotebookStore((s) => s.updatePageScene)
   const { excalidrawAPI } = useEditor()
+  const { paperColorInDarkMode, setPaperColorInDarkMode } = useTheme()
 
   const activePage: Page | undefined = currentNotebook.pages.find((p) => p.id === currentPageId)
 
@@ -321,6 +323,27 @@ export function PageSettingsDialog({
                   </label>
                 </div>
               )}
+
+              {/* Paper color in dark mode */}
+              <div className="settings-field">
+                <label className="settings-label">Paper Color in Dark Mode</label>
+                <div className="settings-btn-group">
+                  <button
+                    type="button"
+                    className={`settings-toggle-btn ${paperColorInDarkMode === 'dark' ? 'active' : ''}`}
+                    onClick={() => setPaperColorInDarkMode('dark')}
+                  >
+                    Dark Paper
+                  </button>
+                  <button
+                    type="button"
+                    className={`settings-toggle-btn ${paperColorInDarkMode === 'light' ? 'active' : ''}`}
+                    onClick={() => setPaperColorInDarkMode('light')}
+                  >
+                    Light Paper (Cream)
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

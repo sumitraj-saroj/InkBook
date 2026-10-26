@@ -8,6 +8,17 @@ import {
 } from '@shared/index'
 
 const THEME_STORAGE_KEY = 'inkbook-theme-preference'
+const PAPER_DARK_STORAGE_KEY = 'inkbook-paper-dark-mode'
+
+function getInitialPaperColor(): 'dark' | 'light' {
+  try {
+    const saved = localStorage.getItem(PAPER_DARK_STORAGE_KEY)
+    if (saved === 'dark' || saved === 'light') return saved
+  } catch {
+    // ignore
+  }
+  return 'dark'
+}
 
 function getInitialPreference(): ThemePreference {
   try {
@@ -30,15 +41,21 @@ function getSystemIsDark(): boolean {
 
 export function ThemeProvider({ children }: { children: ReactNode }): React.JSX.Element {
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>(getInitialPreference)
+  const [paperColorInDarkMode, setPaperColorState] = useState<'dark' | 'light'>(
+    getInitialPaperColor
+  )
   const [systemIsDark, setSystemIsDark] = useState<boolean>(getSystemIsDark)
 
-  // Hydrate theme setting from app config file
+  // Hydrate settings from app config file
   useEffect(() => {
     window.api
       ?.getSettings?.()
       .then((settings) => {
         if (settings?.theme) {
           setThemePreferenceState(settings.theme)
+        }
+        if (settings?.paperColorInDarkMode) {
+          setPaperColorState(settings.paperColorInDarkMode)
         }
       })
       .catch(() => {})
@@ -63,12 +80,23 @@ export function ThemeProvider({ children }: { children: ReactNode }): React.JSX.
     return resolveTheme(themePreference, systemIsDark)
   }, [themePreference, systemIsDark])
 
-  // Apply theme to document root
+  // Apply theme and paper mode to document root
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-theme', resolvedTheme)
+      document.documentElement.setAttribute('data-paper-dark-mode', paperColorInDarkMode)
     }
-  }, [resolvedTheme])
+  }, [resolvedTheme, paperColorInDarkMode])
+
+  const setPaperColorInDarkMode = useCallback((color: 'dark' | 'light'): void => {
+    setPaperColorState(color)
+    try {
+      localStorage.setItem(PAPER_DARK_STORAGE_KEY, color)
+    } catch {
+      // ignore
+    }
+    window.api?.saveSettings?.({ paperColorInDarkMode: color }).catch(() => {})
+  }, [])
 
   const setThemePreference = useCallback((pref: ThemePreference): void => {
     setThemePreferenceState(pref)
@@ -105,11 +133,21 @@ export function ThemeProvider({ children }: { children: ReactNode }): React.JSX.
       themePreference,
       resolvedTheme,
       theme: resolvedTheme,
+      paperColorInDarkMode,
+      setPaperColorInDarkMode,
       setThemePreference,
       setTheme,
       toggleTheme
     }),
-    [themePreference, resolvedTheme, setThemePreference, setTheme, toggleTheme]
+    [
+      themePreference,
+      resolvedTheme,
+      paperColorInDarkMode,
+      setPaperColorInDarkMode,
+      setThemePreference,
+      setTheme,
+      toggleTheme
+    ]
   )
 
   return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>

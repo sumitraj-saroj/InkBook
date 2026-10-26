@@ -73,6 +73,7 @@ export interface NotebookState {
   currentPageId: string
   filePath: string | null
   isDirty: boolean
+  isSaving: boolean
 
   // Actions
   newNotebook: (name?: string) => void
@@ -104,6 +105,7 @@ export interface NotebookState {
     }
   ) => void
   markClean: () => void
+  setIsSaving: (isSaving: boolean) => void
 }
 
 const initialNotebook = createDefaultNotebook()
@@ -113,6 +115,7 @@ export const useNotebookStore = create<NotebookState>((set, get) => ({
   currentPageId: initialNotebook.pages[0]?.id ?? '',
   filePath: null,
   isDirty: false,
+  isSaving: false,
 
   newNotebook: (name?: string): void => {
     const notebook = createDefaultNotebook(name)
@@ -392,5 +395,9 @@ export const useNotebookStore = create<NotebookState>((set, get) => ({
 
   markClean: (): void => {
     set({ isDirty: false })
+  },
+
+  setIsSaving: (isSaving: boolean): void => {
+    set({ isSaving })
   }
 }))

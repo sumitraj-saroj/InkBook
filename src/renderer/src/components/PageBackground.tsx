@@ -24,8 +24,8 @@ export function PageBackgroundComponent({
   scrollY,
   zoom
 }: PageBackgroundProps): React.JSX.Element {
-  const { theme } = useTheme()
-  const colors = getBackgroundColors(theme)
+  const { theme, paperColorInDarkMode } = useTheme()
+  const colors = getBackgroundColors(theme, paperColorInDarkMode)
   const { spacing, ruledTopMargin, ruledLeftMargin, strokeWidth, dotRadius } = BACKGROUND_CONFIG
 
   const uniqueId = useId().replace(/:/g, '')
