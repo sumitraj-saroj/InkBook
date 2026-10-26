@@ -662,6 +662,13 @@ body,
   position: relative;
 }
 
+/* Excalidraw Chrome Customization: hide duplicate hamburger main menu */
+.excalidraw .main-menu-trigger,
+.excalidraw button[aria-label="Main menu"],
+.excalidraw .dropdown-menu-button {
+  display: none !important;
+}
+
 .page-viewport-mock {
   width: min(794px, 85vw);
   height: min(1123px, 80vh);

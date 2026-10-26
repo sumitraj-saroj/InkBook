@@ -1,9 +1,10 @@
 import { useMemo, useEffect, useRef, useCallback, useState } from 'react'
-import { Excalidraw, CaptureUpdateAction } from '@excalidraw/excalidraw'
+import { Excalidraw, CaptureUpdateAction, MainMenu } from '@excalidraw/excalidraw'
 import type {
   ExcalidrawImperativeAPI,
   ExcalidrawProps,
-  AppState
+  AppState,
+  UIOptions
 } from '@excalidraw/excalidraw/types'
 import '@excalidraw/excalidraw/index.css'
 import { useTheme } from '../context/ThemeContext'
@@ -14,6 +15,7 @@ import {
   getPageDimensions,
   computeFitViewport,
   clampViewport,
+  CANVAS_SAFE_INSETS,
   type BoundedElement,
   type Insets
 } from '@shared/index'
@@ -65,6 +67,21 @@ export function ExcalidrawEditor(): React.JSX.Element {
     []
   )
 
+  const uiOptions: Partial<UIOptions> = useMemo(
+    () => ({
+      canvasActions: {
+        changeViewBackgroundColor: false,
+        clearCanvas: false,
+        export: false,
+        loadScene: false,
+        saveToActiveFile: false,
+        toggleTheme: false,
+        saveAsImage: false
+      }
+    }),
+    []
+  )
+
   // Single source of truth for fitting page to usable viewport
   const fitViewport = useCallback((): void => {
     if (!excalidrawAPI || !containerRef.current) return
@@ -79,23 +96,23 @@ export function ExcalidrawEditor(): React.JSX.Element {
     )
     const footerEl = document.querySelector('.page-footer')
 
-    let topInset = 60
+    let topInset: number = CANVAS_SAFE_INSETS.top
     if (toolbarEl) {
       const tbRect = toolbarEl.getBoundingClientRect()
-      topInset = tbRect.bottom - containerRect.top
+      topInset = Math.max(CANVAS_SAFE_INSETS.top, tbRect.bottom - containerRect.top)
     }
 
-    let bottomInset = 55
+    let bottomInset: number = CANVAS_SAFE_INSETS.bottom
     if (footerEl) {
       const fRect = footerEl.getBoundingClientRect()
-      bottomInset = containerRect.bottom - fRect.top
+      bottomInset = Math.max(CANVAS_SAFE_INSETS.bottom, containerRect.bottom - fRect.top)
     }
 
     const insets: Insets = {
       top: topInset,
       bottom: bottomInset,
-      left: 16,
-      right: 16
+      left: CANVAS_SAFE_INSETS.left,
+      right: CANVAS_SAFE_INSETS.right
     }
 
     const canvasWidth = containerRef.current.clientWidth || 1000
@@ -320,7 +337,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
         const fit = computeFitViewport(
           targetDims,
           { width: vpW, height: vpH },
-          { top: 70, bottom: 60, left: 16, right: 16 },
+          CANVAS_SAFE_INSETS,
           20
         )
 
@@ -427,6 +444,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
       <Excalidraw
         theme={theme}
         initialData={initialData}
+        UIOptions={uiOptions}
         onChange={handleSceneChange}
         excalidrawAPI={(api): void => {
           setExcalidrawAPI(api)
@@ -436,7 +454,9 @@ export function ExcalidrawEditor(): React.JSX.Element {
             fitViewport()
           }, 60)
         }}
-      />
+      >
+        <MainMenu>{null}</MainMenu>
+      </Excalidraw>
     </div>
   )
 }

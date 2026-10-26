@@ -18,6 +18,17 @@ export const DEFAULT_PAGE_SIZE: PageSize = {
 
 export const DEFAULT_PAGE_ORIENTATION: PageOrientation = 'portrait'
 
+/**
+ * Safe area insets (in px) reserved for floating chrome so that drawing pages
+ * are never obscured by the top drawing toolbar (~72px) or bottom page navigation pill (~72px).
+ */
+export const CANVAS_SAFE_INSETS = {
+  top: 72,
+  bottom: 72,
+  left: 16,
+  right: 16
+}
+
 export function isLandscape(orientation: PageOrientation): boolean {
   return orientation === 'landscape'
 }

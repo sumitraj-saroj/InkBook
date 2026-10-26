@@ -1,4 +1,5 @@
-import { getPageDimensions } from './constants'
+import { getPageDimensions, CANVAS_SAFE_INSETS } from './constants'
+export { CANVAS_SAFE_INSETS }
 import type { PageOrientation, PageSize, PageDimensions } from './types'
 
 export interface ElementBounds {
