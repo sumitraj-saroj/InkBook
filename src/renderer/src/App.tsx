@@ -1,6 +1,5 @@
 import { useEffect, useCallback, useState } from 'react'
 import { serializeAsJSON, restore, CaptureUpdateAction } from '@excalidraw/excalidraw'
-import type { AppState } from '@excalidraw/excalidraw/types'
 import { ExcalidrawEditor } from './components/ExcalidrawEditor'
 import { NotebookTitle } from './components/NotebookTitle'
 import { Sidebar } from './components/Sidebar'
@@ -17,7 +16,7 @@ import { ThemeProvider } from './context/ThemeProvider'
 import { useEditor } from './context/EditorContext'
 import { EditorProvider } from './context/EditorProvider'
 import { useNotebookStore } from './store/notebookStore'
-import { calculatePageFit, getPageDimensions, type SearchResult } from '@shared/index'
+import type { SearchResult } from '@shared/index'
 import { useAutosave } from './hooks/useAutosave'
 import { useRecovery } from './hooks/useRecovery'
 import {
@@ -32,7 +31,7 @@ function Workspace(): React.JSX.Element {
   useAutosave()
   useRecovery()
   const { theme, themePreference, toggleTheme } = useTheme()
-  const { excalidrawAPI } = useEditor()
+  const { excalidrawAPI, fitPage } = useEditor()
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const currentNotebook = useNotebookStore((s) => s.currentNotebook)
   const filePath = useNotebookStore((s) => s.filePath)
@@ -52,42 +51,12 @@ function Workspace(): React.JSX.Element {
   const [isPageSettingsOpen, setIsPageSettingsOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
-  const handleFitToWindow = useCallback((): void => {
-    if (!excalidrawAPI) return
-    const page = currentNotebook.pages.find((p) => p.id === currentPageId)
-    if (!page) return
-    const dims = getPageDimensions(page)
-
-    const editorEl = document.querySelector('.editor-container')
-    const vpW = editorEl?.clientWidth || window.innerWidth - 240
-    const vpH = editorEl?.clientHeight || window.innerHeight - 48
-
-    const fit = calculatePageFit({
-      pageWidth: dims.width,
-      pageHeight: dims.height,
-      viewportWidth: vpW,
-      viewportHeight: vpH,
-      padding: 48
-    })
-
-    excalidrawAPI.updateScene({
-      appState: {
-        scrollX: fit.scrollX,
-        scrollY: fit.scrollY,
-        zoom: {
-          value: fit.zoom as unknown as NonNullable<AppState['zoom']>['value']
-        }
-      } as unknown as Parameters<typeof excalidrawAPI.updateScene>[0]['appState'],
-      captureUpdate: CaptureUpdateAction.NEVER
-    })
-  }, [excalidrawAPI, currentNotebook.pages, currentPageId])
-
   const handleSelectSearchResult = useCallback(
     (result: SearchResult): void => {
       setCurrentPage(result.pageId)
       if (result.type === 'page') {
         setTimeout(() => {
-          handleFitToWindow()
+          fitPage()
         }, 30)
       } else if (result.type === 'text' && result.elementId) {
         setTimeout(() => {
@@ -110,7 +79,7 @@ function Workspace(): React.JSX.Element {
         }, 50)
       }
     },
-    [setCurrentPage, handleFitToWindow, excalidrawAPI]
+    [setCurrentPage, fitPage, excalidrawAPI]
   )
 
   const handleNextPage = useCallback((): void => {
@@ -230,13 +199,13 @@ function Workspace(): React.JSX.Element {
           >[0]['elements'],
           captureUpdate: CaptureUpdateAction.IMMEDIATELY
         })
-        handleFitToWindow()
+        fitPage()
       }
     } catch (err) {
       console.error('Failed to import .excalidraw:', err)
       alert(`Failed to import file: ${err instanceof Error ? err.message : String(err)}`)
     }
-  }, [excalidrawAPI, handleFitToWindow])
+  }, [excalidrawAPI, fitPage])
 
   const handleImportIntoCurrentPage = useCallback(async (): Promise<void> => {
     const page = currentNotebook.pages.find((p) => p.id === currentPageId)
@@ -292,7 +261,7 @@ function Workspace(): React.JSX.Element {
     const handleKeyDown = (e: KeyboardEvent): void => {
       if ((e.ctrlKey || e.metaKey) && (e.key === '0' || e.code === 'Digit0')) {
         e.preventDefault()
-        handleFitToWindow()
+        fitPage()
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
         e.preventDefault()
         if (e.shiftKey) {
@@ -334,7 +303,7 @@ function Workspace(): React.JSX.Element {
     window.addEventListener('keydown', handleKeyDown)
     return (): void => window.removeEventListener('keydown', handleKeyDown)
   }, [
-    handleFitToWindow,
+    fitPage,
     handleSaveNotebook,
     handleSaveAsNotebook,
     handleOpenNotebook,
@@ -507,11 +476,7 @@ function Workspace(): React.JSX.Element {
             Save{isDirty ? ' •' : ''}
           </button>
           <BackgroundPicker />
-          <button
-            className="action-btn"
-            onClick={handleFitToWindow}
-            title="Fit page to window (Ctrl+0)"
-          >
+          <button className="action-btn" onClick={fitPage} title="Fit page to window (Ctrl+0)">
             Fit page
           </button>
           <button
@@ -567,7 +532,7 @@ function Workspace(): React.JSX.Element {
             onPrevPage={handlePrevPage}
             onNextPage={handleNextPage}
             onAddPage={addPage}
-            onFitPage={handleFitToWindow}
+            onFitPage={fitPage}
             onOpenSettings={(): void => setIsPageSettingsOpen(true)}
           />
         </main>
@@ -592,7 +557,7 @@ function Workspace(): React.JSX.Element {
         key={String(isCommandPaletteOpen)}
         isOpen={isCommandPaletteOpen}
         onClose={(): void => setIsCommandPaletteOpen(false)}
-        onFitPage={handleFitToWindow}
+        onFitPage={fitPage}
         onSaveNotebook={handleSaveNotebook}
         onSaveAsNotebook={handleSaveAsNotebook}
         onOpenNotebook={handleOpenNotebook}
@@ -623,7 +588,7 @@ function Workspace(): React.JSX.Element {
         key={String(isPageSettingsOpen)}
         isOpen={isPageSettingsOpen}
         onClose={(): void => setIsPageSettingsOpen(false)}
-        onFitPage={handleFitToWindow}
+        onFitPage={fitPage}
       />
 
       <ShortcutsHelpDialog

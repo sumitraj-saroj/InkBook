@@ -5,6 +5,10 @@ export interface EditorContextValue {
   excalidrawAPI: ExcalidrawImperativeAPI | null
   setExcalidrawAPI: (api: ExcalidrawImperativeAPI | null) => void
   apiRef: RefObject<ExcalidrawImperativeAPI | null>
+  fitPage: () => void
+  registerFitHandler: (fn: () => void) => () => void
+  isAutoFit: boolean
+  setIsAutoFit: (autoFit: boolean) => void
 }
 
 export const EditorContext = createContext<EditorContextValue | null>(null)

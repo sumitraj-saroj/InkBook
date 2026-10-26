@@ -25,9 +25,7 @@ export default defineConfig({
       }
     },
     define: {
-      __INKBOOK_DEV_HOOK__: JSON.stringify(
-        process.env.NODE_ENV !== 'production' || process.env.INKBOOK_DEBUG === 'true'
-      )
+      __INKBOOK_DEV_HOOK__: JSON.stringify(process.env.INKBOOK_RELEASE !== 'true')
     },
     plugins: [react()]
   }
