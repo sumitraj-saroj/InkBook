@@ -23,7 +23,7 @@ import { PageOverlay } from './PageOverlay'
 import { PageBackground } from './PageBackground'
 
 export function ExcalidrawEditor(): React.JSX.Element {
-  const { theme } = useTheme()
+  const { theme, paperColorInDarkMode } = useTheme()
   const { excalidrawAPI, setExcalidrawAPI, registerFitHandler, isAutoFit, setIsAutoFit } =
     useEditor()
   const currentNotebook = useNotebookStore((s) => s.currentNotebook)
@@ -148,6 +148,34 @@ export function ExcalidrawEditor(): React.JSX.Element {
   useEffect(() => {
     return registerFitHandler(fitViewport)
   }, [registerFitHandler, fitViewport])
+
+  // Synchronize stroke color contrast when paper color in dark mode changes
+  useEffect(() => {
+    if (!excalidrawAPI) return
+    const appState = excalidrawAPI.getAppState()
+    const isLightPaper = theme === 'light' || paperColorInDarkMode === 'light'
+    const targetStroke = isLightPaper ? '#1e1e24' : '#ffffff'
+
+    const currentStroke = appState.currentItemStrokeColor
+    if (isLightPaper && (currentStroke === '#ffffff' || currentStroke === '#f4f4f5')) {
+      excalidrawAPI.updateScene({
+        appState: {
+          currentItemStrokeColor: targetStroke
+        } as unknown as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['appState'],
+        captureUpdate: CaptureUpdateAction.NEVER
+      })
+    } else if (
+      !isLightPaper &&
+      (currentStroke === '#1e1e24' || currentStroke === '#000000' || currentStroke === '#1e1e1e')
+    ) {
+      excalidrawAPI.updateScene({
+        appState: {
+          currentItemStrokeColor: targetStroke
+        } as unknown as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['appState'],
+        captureUpdate: CaptureUpdateAction.NEVER
+      })
+    }
+  }, [theme, paperColorInDarkMode, excalidrawAPI])
 
   // ResizeObserver: auto-fit when window or container resizes if in auto-fit mode
   useEffect(() => {

@@ -106,13 +106,19 @@ export interface UserSettings {
   theme: 'system' | 'dark' | 'light'
   sidebarViewMode: 'list' | 'thumbnail'
   autosaveInterval: number
+  paperColorInDarkMode?: 'dark' | 'light'
+  sidebarWidth?: number
+  sidebarCollapsed?: boolean
 }
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
   recentNotebooks: [],
   theme: 'system',
   sidebarViewMode: 'list',
-  autosaveInterval: 2000
+  autosaveInterval: 2000,
+  paperColorInDarkMode: 'dark',
+  sidebarWidth: 240,
+  sidebarCollapsed: false
 }
 
 export interface InkBookAPI {

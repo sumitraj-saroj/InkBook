@@ -44,6 +44,18 @@ export const BACKGROUND_CONFIG: BackgroundConfig = {
   }
 }
 
-export function getBackgroundColors(theme: 'dark' | 'light'): BackgroundThemeColors {
+export function getBackgroundColors(
+  theme: 'dark' | 'light',
+  paperColorInDarkMode: 'dark' | 'light' = 'dark'
+): BackgroundThemeColors {
+  if (theme === 'dark' && paperColorInDarkMode === 'light') {
+    return {
+      paper: '#f4f1e8',
+      ruledLine: 'rgba(0, 0, 0, 0.14)',
+      ruledMarginLine: 'rgba(225, 29, 72, 0.35)',
+      gridLine: 'rgba(0, 0, 0, 0.10)',
+      dot: 'rgba(0, 0, 0, 0.22)'
+    }
+  }
   return BACKGROUND_CONFIG.colors[theme]
 }

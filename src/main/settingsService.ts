@@ -45,7 +45,18 @@ export async function readSettings(customUserDataDir?: string): Promise<UserSett
       autosaveInterval:
         typeof parsed.autosaveInterval === 'number' && parsed.autosaveInterval >= 500
           ? parsed.autosaveInterval
-          : DEFAULT_USER_SETTINGS.autosaveInterval
+          : DEFAULT_USER_SETTINGS.autosaveInterval,
+      paperColorInDarkMode: parsed.paperColorInDarkMode === 'light' ? 'light' : 'dark',
+      sidebarWidth:
+        typeof parsed.sidebarWidth === 'number' &&
+        parsed.sidebarWidth >= 200 &&
+        parsed.sidebarWidth <= 360
+          ? parsed.sidebarWidth
+          : DEFAULT_USER_SETTINGS.sidebarWidth,
+      sidebarCollapsed:
+        typeof parsed.sidebarCollapsed === 'boolean'
+          ? parsed.sidebarCollapsed
+          : DEFAULT_USER_SETTINGS.sidebarCollapsed
     }
   } catch {
     return { ...DEFAULT_USER_SETTINGS }
@@ -74,7 +85,10 @@ export async function updateSettings(
     recentNotebooks: partial.recentNotebooks ?? current.recentNotebooks,
     theme: partial.theme ?? current.theme,
     sidebarViewMode: partial.sidebarViewMode ?? current.sidebarViewMode,
-    autosaveInterval: partial.autosaveInterval ?? current.autosaveInterval
+    autosaveInterval: partial.autosaveInterval ?? current.autosaveInterval,
+    paperColorInDarkMode: partial.paperColorInDarkMode ?? current.paperColorInDarkMode,
+    sidebarWidth: partial.sidebarWidth ?? current.sidebarWidth,
+    sidebarCollapsed: partial.sidebarCollapsed ?? current.sidebarCollapsed
   }
   await writeSettings(updated, customUserDataDir)
   return updated

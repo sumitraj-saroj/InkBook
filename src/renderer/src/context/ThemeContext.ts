@@ -10,6 +10,10 @@ export interface ThemeContextValue {
   resolvedTheme: ResolvedTheme
   /** Alias for resolvedTheme for backward compatibility */
   theme: ResolvedTheme
+  /** Paper color in dark mode: 'dark' | 'light' (cream) */
+  paperColorInDarkMode: 'dark' | 'light'
+  /** Sets the paper color in dark mode */
+  setPaperColorInDarkMode: (color: 'dark' | 'light') => void
   /** Sets the theme preference */
   setThemePreference: (pref: ThemePreference) => void
   /** Direct setter (legacy support) */

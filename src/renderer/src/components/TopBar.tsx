@@ -53,7 +53,13 @@ export function TopBar({
   onOpenShortcuts,
   onOpenAbout
 }: TopBarProps): React.JSX.Element {
-  const { theme, themePreference, setThemePreference } = useTheme()
+  const {
+    theme,
+    themePreference,
+    setThemePreference,
+    paperColorInDarkMode,
+    setPaperColorInDarkMode
+  } = useTheme()
   const isDirty = useNotebookStore((s) => s.isDirty)
   const isSaving = useNotebookStore((s) => s.isSaving)
 
@@ -92,22 +98,36 @@ export function TopBar({
   const themeItems: MenuItemType[] = useMemo(
     () => [
       {
-        label: 'Light theme',
+        label: `Light theme ${themePreference === 'light' ? '✓' : ''}`,
         icon: Sun,
         onClick: (): void => setThemePreference('light')
       },
       {
-        label: 'Dark theme',
+        label: `Dark theme ${themePreference === 'dark' ? '✓' : ''}`,
         icon: Moon,
         onClick: (): void => setThemePreference('dark')
       },
       {
-        label: 'System default',
+        label: `System default ${themePreference === 'system' ? '✓' : ''}`,
         icon: Laptop,
         onClick: (): void => setThemePreference('system')
+      },
+      {
+        separator: true,
+        label: 'Paper in dark mode'
+      },
+      {
+        label: `Dark paper ${paperColorInDarkMode === 'dark' ? '✓' : ''}`,
+        icon: FileText,
+        onClick: (): void => setPaperColorInDarkMode('dark')
+      },
+      {
+        label: `Light paper (cream) ${paperColorInDarkMode === 'light' ? '✓' : ''}`,
+        icon: FileText,
+        onClick: (): void => setPaperColorInDarkMode('light')
       }
     ],
-    [setThemePreference]
+    [themePreference, paperColorInDarkMode, setThemePreference, setPaperColorInDarkMode]
   )
 
   // Overflow menu items
