@@ -40,6 +40,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       {...props}
     >
       {Icon ? <Icon size={18} strokeWidth={1.75} aria-hidden="true" /> : iconElement}
+      <span className="sr-only">{label}</span>
     </button>
   )
 

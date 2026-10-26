@@ -83,6 +83,7 @@ export function useAutosave(): void {
         if (!state.filePath || !state.isDirty) return false
 
         try {
+          state.setIsSaving(true)
           const api = (window as unknown as { api?: InkBookAPI }).api
           if (!api) return false
           const res = await api.saveNotebook(state.currentNotebook, state.filePath)
@@ -92,6 +93,8 @@ export function useAutosave(): void {
           }
         } catch (err) {
           console.error('Debounced autosave failed:', err)
+        } finally {
+          state.setIsSaving(false)
         }
         return false
       }

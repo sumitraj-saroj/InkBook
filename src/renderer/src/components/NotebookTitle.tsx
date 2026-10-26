@@ -3,7 +3,6 @@ import { useNotebookStore } from '../store/notebookStore'
 
 export function NotebookTitle(): React.JSX.Element {
   const notebookName = useNotebookStore((s) => s.currentNotebook.name)
-  const isDirty = useNotebookStore((s) => s.isDirty)
   const renameNotebook = useNotebookStore((s) => s.renameNotebook)
 
   const [isEditing, setIsEditing] = useState(false)
@@ -58,11 +57,6 @@ export function NotebookTitle(): React.JSX.Element {
           title="Click to rename notebook"
         >
           <span className="notebook-title-text">{notebookName}</span>
-          {isDirty && (
-            <span className="dirty-indicator" title="Unsaved changes">
-              *
-            </span>
-          )}
         </button>
       )}
     </div>
