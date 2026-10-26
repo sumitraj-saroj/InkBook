@@ -24,6 +24,11 @@ export default defineConfig({
         '@shared': resolve('src/shared')
       }
     },
+    define: {
+      __INKBOOK_DEV_HOOK__: JSON.stringify(
+        process.env.NODE_ENV !== 'production' || process.env.INKBOOK_DEBUG === 'true'
+      )
+    },
     plugins: [react()]
   }
 })

@@ -285,6 +285,39 @@ export function ExcalidrawEditor(): React.JSX.Element {
     activePageIdRef.current = currentPageId
   }, [currentNotebook.id, currentPageId, excalidrawAPI, updatePageScene])
 
+  // Dev-only debug hook for Playwright / E2E test harness (stripped in production builds)
+  useEffect(() => {
+    if (
+      import.meta.env.DEV ||
+      (typeof __INKBOOK_DEV_HOOK__ !== 'undefined' && __INKBOOK_DEV_HOOK__)
+    ) {
+      window.__inkbook = {
+        getAppState: () => {
+          if (!excalidrawAPI) return null
+          const appState = excalidrawAPI.getAppState()
+          const container = containerRef.current
+          return {
+            scrollX: appState.scrollX,
+            scrollY: appState.scrollY,
+            zoom: appState.zoom?.value ?? 1,
+            canvasSize: {
+              width: container?.clientWidth ?? 0,
+              height: container?.clientHeight ?? 0
+            },
+            pageSize: {
+              width: pageDims.width,
+              height: pageDims.height
+            }
+          }
+        }
+      }
+      return (): void => {
+        delete window.__inkbook
+      }
+    }
+    return undefined
+  }, [excalidrawAPI, pageDims.width, pageDims.height])
+
   return (
     <div
       ref={containerRef}
