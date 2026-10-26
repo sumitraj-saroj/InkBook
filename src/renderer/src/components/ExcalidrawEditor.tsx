@@ -1,5 +1,6 @@
 import { useMemo, useEffect, useRef, useCallback, useState } from 'react'
 import { Excalidraw, CaptureUpdateAction, MainMenu } from '@excalidraw/excalidraw'
+import { PenTool, X } from 'lucide-react'
 import type {
   ExcalidrawImperativeAPI,
   ExcalidrawProps,
@@ -57,6 +58,26 @@ export function ExcalidrawEditor(): React.JSX.Element {
     scrollY: 0,
     zoom: 1
   })
+
+  const [showEmptyHint, setShowEmptyHint] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('inkbook-empty-hint-dismissed') !== 'true'
+    } catch {
+      return true
+    }
+  })
+
+  const isPageEmpty = !activePage?.scene.elements || activePage.scene.elements.length === 0
+  const shouldShowEmptyHint = showEmptyHint && isPageEmpty
+
+  const dismissEmptyHint = useCallback((): void => {
+    setShowEmptyHint(false)
+    try {
+      localStorage.setItem('inkbook-empty-hint-dismissed', 'true')
+    } catch {
+      // ignore
+    }
+  }, [])
 
   const initialData = useMemo(
     () => ({
@@ -488,6 +509,30 @@ export function ExcalidrawEditor(): React.JSX.Element {
       >
         <MainMenu>{null}</MainMenu>
       </Excalidraw>
+      {shouldShowEmptyHint && (
+        <div
+          className="empty-page-hint"
+          onClick={dismissEmptyHint}
+          role="status"
+          aria-label="Empty page hint"
+        >
+          <PenTool size={14} strokeWidth={1.75} aria-hidden="true" />
+          <span>
+            Start drawing, or press <kbd>Ctrl+K</kbd> for commands
+          </span>
+          <button
+            type="button"
+            className="empty-page-hint-close"
+            onClick={(e): void => {
+              e.stopPropagation()
+              dismissEmptyHint()
+            }}
+            aria-label="Dismiss hint"
+          >
+            <X size={12} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

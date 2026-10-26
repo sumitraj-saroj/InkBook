@@ -320,6 +320,14 @@ app.whenReady().then(() => {
       }
     }
   )
+  ipcMain.handle('file:stat', async (_, filePath: string) => {
+    try {
+      const stats = await fs.stat(filePath)
+      return { mtimeMs: stats.mtimeMs, size: stats.size }
+    } catch {
+      return null
+    }
+  })
   ipcMain.handle('notebook:recent', async () => getRecentNotebooks())
   ipcMain.handle('app:initial-file', async () => initialFileArgument)
   ipcMain.handle('notebook:clear-recent', async () => {

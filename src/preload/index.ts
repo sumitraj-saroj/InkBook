@@ -71,6 +71,9 @@ const api: InkBookAPI = {
   getRecentFiles: async (): Promise<string[]> => {
     return ipcRenderer.invoke('notebook:recent')
   },
+  getFileStat: async (filePath: string): Promise<{ mtimeMs: number; size: number } | null> => {
+    return ipcRenderer.invoke('file:stat', filePath)
+  },
   clearRecentFiles: async (): Promise<boolean> => {
     return ipcRenderer.invoke('notebook:clear-recent')
   },

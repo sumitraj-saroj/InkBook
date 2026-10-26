@@ -678,157 +678,170 @@ body,
   transform: translateZ(0);
 }
 
-/* Welcome Screen Modal */
+/* ==========================================================================
+   Welcome Screen Modal (Design System Tokens)
+   ========================================================================== */
+
 .welcome-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--color-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
-  padding: 24px;
+  backdrop-filter: blur(8px);
+  padding: var(--space-6);
+  animation: modalFadeIn var(--transition-standard) ease-out;
 }
 
 .welcome-card {
   width: 100%;
-  max-width: 640px;
+  max-width: 600px;
   max-height: 85vh;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: welcomeFadeIn 0.2s ease-out;
+  animation: welcomePopIn var(--transition-standard) ease-out;
 }
 
-@keyframes welcomeFadeIn {
+@keyframes welcomePopIn {
   from {
     opacity: 0;
-    transform: scale(0.97);
+    transform: scale(0.96) translateY(8px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
   }
 }
 
 .welcome-header {
   position: relative;
-  padding: 24px 28px 16px 28px;
-  border-bottom: 1px solid var(--border-color);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+}
+
+.welcome-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+.welcome-logo {
+  font-family: var(--font-handwriting);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-accent);
+  line-height: 1;
 }
 
 .welcome-badge {
-  display: inline-block;
+  font-family: var(--font-ui);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  font-weight: 600;
   text-transform: uppercase;
-  background-color: var(--accent);
-  color: #ffffff;
+  letter-spacing: 0.05em;
+  background-color: var(--color-accent-subtle);
+  color: var(--color-accent);
   padding: 2px 8px;
-  border-radius: 4px;
-  margin-bottom: 8px;
-}
-
-.welcome-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 6px 0;
+  border-radius: var(--radius-full);
 }
 
 .welcome-subtitle {
+  font-family: var(--font-ui);
   font-size: 13px;
-  color: var(--text-secondary);
-  margin: 0;
+  color: var(--color-text-muted);
+  margin: var(--space-1) 0 0;
   line-height: 1.4;
 }
 
 .welcome-close-btn {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: var(--space-5);
+  right: var(--space-5);
   background: transparent;
-  border: none;
-  font-size: 18px;
-  color: var(--text-muted);
+  border: 1px solid transparent;
+  color: var(--color-text-muted);
   cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
+  outline: none;
 }
 
 .welcome-close-btn:hover {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
+  background-color: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.welcome-close-btn:focus-visible {
+  box-shadow: var(--focus-ring);
 }
 
 .welcome-body {
-  padding: 20px 28px;
+  padding: var(--space-5) var(--space-6);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .welcome-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .welcome-action-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: var(--color-workspace);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
   text-align: left;
-  transition: all 0.15s ease;
+  transition: all var(--transition-standard);
+  outline: none;
 }
 
 .welcome-action-card:hover {
-  background-color: var(--bg-primary);
-  border-color: var(--accent);
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-accent);
   transform: translateY(-1px);
 }
 
-.card-icon {
-  font-size: 24px;
+.welcome-action-card:focus-visible {
+  box-shadow: var(--focus-ring);
 }
 
-.card-text {
+.welcome-action-icon-wrapper {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.card-heading {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.card-subheading {
-  font-size: 11px;
-  color: var(--text-muted);
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-accent-subtle);
+  color: var(--color-accent);
+  flex-shrink: 0;
 }
 
 .welcome-recents {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .recents-header {
@@ -838,34 +851,78 @@ body,
 }
 
 .recents-header h3 {
-  font-size: 14px;
+  font-family: var(--font-ui);
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--color-text-muted);
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .clear-recents-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   background: transparent;
   border: none;
   font-size: 11px;
-  color: var(--text-muted);
+  font-weight: 500;
+  color: var(--color-text-subtle);
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
 }
 
 .clear-recents-btn:hover {
-  color: #ef4444;
-  text-decoration: underline;
+  color: var(--color-danger);
 }
 
-.recents-empty,
+.clear-recents-btn:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.recents-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+  background-color: var(--color-workspace);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.recents-empty-icon {
+  color: var(--color-text-subtle);
+  opacity: 0.6;
+}
+
+.recents-empty-title {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.recents-empty-desc {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 320px;
+}
+
 .recents-loading {
   font-size: 12px;
-  color: var(--text-muted);
-  padding: 16px;
-  background-color: var(--bg-tertiary);
-  border-radius: 6px;
+  color: var(--color-text-muted);
+  padding: var(--space-4);
+  background-color: var(--color-workspace);
+  border-radius: var(--radius-md);
   text-align: center;
 }
 
@@ -875,7 +932,7 @@ body,
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1);
   max-height: 220px;
   overflow-y: auto;
 }
@@ -884,23 +941,40 @@ body,
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background-color: var(--bg-tertiary);
-  border: 1px solid transparent;
-  border-radius: 6px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-workspace);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
   text-align: left;
-  transition: all 0.15s ease;
+  transition: all var(--transition-standard);
+  outline: none;
 }
 
 .recent-item-btn:hover {
-  background-color: var(--bg-primary);
-  border-color: var(--accent);
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-accent);
 }
 
-.recent-file-icon {
-  font-size: 18px;
+.recent-item-btn:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.recent-file-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.recent-item-btn:hover .recent-file-icon-box {
+  color: var(--color-accent);
 }
 
 .recent-file-info {
@@ -908,44 +982,137 @@ body,
   flex-direction: column;
   gap: 2px;
   overflow: hidden;
+  flex: 1;
 }
 
 .recent-file-name {
+  font-family: var(--font-ui);
   font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.recent-file-path {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-weight: 500;
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.recent-file-path {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-file-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .welcome-footer {
-  padding: 12px 28px;
-  border-top: 1px solid var(--border-color);
+  padding: var(--space-3) var(--space-6);
+  border-top: 1px solid var(--color-border);
   display: flex;
   justify-content: flex-end;
+  background-color: var(--color-surface);
 }
 
 .welcome-continue-btn {
-  padding: 8px 16px;
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--text-primary);
+  padding: 6px 14px;
+  background-color: var(--color-workspace);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-ui);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
+  transition: all var(--transition-standard);
+  outline: none;
 }
 
 .welcome-continue-btn:hover {
-  background-color: var(--accent);
+  background-color: var(--color-accent);
   color: #ffffff;
-  border-color: var(--accent);
+  border-color: var(--color-accent);
+}
+
+.welcome-continue-btn:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+/* Empty Page Floating Hint */
+.empty-page-hint {
+  position: absolute;
+  top: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 12px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  z-index: 15;
+  cursor: pointer;
+  user-select: none;
+  animation: hintFloat 2s ease-in-out infinite alternate;
+  transition:
+    opacity var(--transition-standard),
+    transform var(--transition-standard);
+}
+
+@keyframes hintFloat {
+  from {
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    transform: translateX(-50%) translateY(-3px);
+  }
+}
+
+.empty-page-hint:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text);
+  border-color: var(--color-accent);
+}
+
+.empty-page-hint kbd {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text);
+  background-color: var(--color-workspace);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.empty-page-hint-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--radius-full);
+  transition: color var(--transition-fast);
+}
+
+.empty-page-hint-close:hover {
+  color: var(--color-text);
 }
 
 /* Export Dialog Styles */

@@ -138,6 +138,7 @@ export interface InkBookAPI {
   ) => Promise<{ success: boolean; error?: string }>
   exportFile: (options: ExportFileOptions) => Promise<ExportFileResult>
   getRecentFiles: () => Promise<string[]>
+  getFileStat?: (filePath: string) => Promise<{ mtimeMs: number; size: number } | null>
   clearRecentFiles: () => Promise<boolean>
   getInitialFile: () => Promise<string | null>
   openExcalidrawFile: () => Promise<OpenFileResult>
