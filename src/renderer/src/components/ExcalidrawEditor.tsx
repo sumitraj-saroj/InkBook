@@ -120,13 +120,13 @@ export function ExcalidrawEditor(): React.JSX.Element {
     let topInset: number = CANVAS_SAFE_INSETS.top
     if (toolbarEl) {
       const tbRect = toolbarEl.getBoundingClientRect()
-      topInset = Math.max(CANVAS_SAFE_INSETS.top, tbRect.bottom - containerRect.top)
+      topInset = tbRect.bottom - containerRect.top
     }
 
     let bottomInset: number = CANVAS_SAFE_INSETS.bottom
     if (footerEl) {
       const fRect = footerEl.getBoundingClientRect()
-      bottomInset = Math.max(CANVAS_SAFE_INSETS.bottom, containerRect.bottom - fRect.top)
+      bottomInset = containerRect.bottom - fRect.top
     }
 
     const insets: Insets = {

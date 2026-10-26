@@ -34,11 +34,14 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(functio
     children,
     className = '',
     disabled,
+    'aria-label': ariaLabel,
     ...props
   },
   ref
 ) {
-  const displayTooltip = tooltip ?? (shortcut && label ? `${label} (${shortcut})` : label)
+  const effectiveLabel = label ?? tooltip ?? ''
+  const displayTooltip =
+    ariaLabel ?? (shortcut && effectiveLabel ? `${effectiveLabel} (${shortcut})` : effectiveLabel)
 
   const button = (
     <button
@@ -56,10 +59,10 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(functio
     </button>
   )
 
-  if (!displayTooltip) return button
+  if (!effectiveLabel) return button
 
   return (
-    <Tooltip label={label ?? tooltip ?? ''} shortcut={shortcut} placement="top">
+    <Tooltip label={effectiveLabel} shortcut={shortcut} placement="top">
       {button}
     </Tooltip>
   )

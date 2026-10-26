@@ -13,7 +13,9 @@ describe('Modal Escape Key Dismissal E2E', () => {
 
       // 1. Welcome Screen
       console.log('Testing Welcome modal...')
-      await page.click('button:has-text("Welcome")')
+      await page.click('button[aria-label="More options"]')
+      await page.waitForSelector('.ui-menu-dropdown', { state: 'visible' })
+      await page.click('button:has-text("Welcome screen")')
       await page.waitForSelector('.welcome-overlay', { state: 'visible' })
       console.log('Welcome overlay visible, pressing Escape...')
       await page.keyboard.press('Escape')
@@ -23,7 +25,9 @@ describe('Modal Escape Key Dismissal E2E', () => {
 
       // 2. Export Dialog
       console.log('Testing Export modal...')
-      await page.click('button:has-text("Export")')
+      await page.click('button[aria-label^="Export"]')
+      await page.waitForSelector('.ui-menu-dropdown', { state: 'visible' })
+      await page.click('button:has-text("PNG image")')
       await page.waitForSelector('.export-dialog-card', { state: 'visible' })
       await page.keyboard.press('Escape')
       await page.waitForSelector('.export-dialog-card', { state: 'detached' })

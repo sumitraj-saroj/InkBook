@@ -188,29 +188,16 @@ export function PageFooter({
       {/* Bottom-left pill: zoom out, zoom %, zoom in, Fit, undo, redo */}
       <div className="page-footer-left">
         <Pill className="page-footer-pill page-footer-pill--canvas">
-          <PillButton
-            icon={Minus}
-            onClick={handleZoomOut}
-            tooltip="Zoom out"
-            shortcut="Ctrl+-"
-            aria-label="Zoom out"
-          />
+          <PillButton icon={Minus} onClick={handleZoomOut} tooltip="Zoom out" shortcut="Ctrl+-" />
           <PillButton
             onClick={handleResetZoom}
             tooltip="Reset zoom to 100%"
             shortcut="Ctrl+0"
-            aria-label="Reset zoom"
             className="footer-zoom-btn"
           >
             <span>{Math.round(zoom * 100)}%</span>
           </PillButton>
-          <PillButton
-            icon={Plus}
-            onClick={handleZoomIn}
-            tooltip="Zoom in"
-            shortcut="Ctrl++"
-            aria-label="Zoom in"
-          />
+          <PillButton icon={Plus} onClick={handleZoomIn} tooltip="Zoom in" shortcut="Ctrl++" />
 
           <PillDivider />
 
@@ -218,7 +205,6 @@ export function PageFooter({
             onClick={onFitPage}
             tooltip="Fit page to window"
             shortcut="Ctrl+0"
-            aria-label="Fit page"
             className="footer-fit-btn"
           >
             <span>Fit</span>
@@ -227,20 +213,8 @@ export function PageFooter({
 
           <PillDivider />
 
-          <PillButton
-            icon={Undo2}
-            onClick={handleUndo}
-            tooltip="Undo"
-            shortcut="Ctrl+Z"
-            aria-label="Undo"
-          />
-          <PillButton
-            icon={Redo2}
-            onClick={handleRedo}
-            tooltip="Redo"
-            shortcut="Ctrl+Y"
-            aria-label="Redo"
-          />
+          <PillButton icon={Undo2} onClick={handleUndo} tooltip="Undo" shortcut="Ctrl+Z" />
+          <PillButton icon={Redo2} onClick={handleRedo} tooltip="Redo" shortcut="Ctrl+Y" />
         </Pill>
       </div>
 
@@ -253,7 +227,6 @@ export function PageFooter({
             disabled={isFirst}
             tooltip="Previous page"
             shortcut="Ctrl+PageUp"
-            aria-label="Previous page"
           />
 
           <span className="footer-page-indicator" title="Current page number and total pages">
@@ -266,18 +239,11 @@ export function PageFooter({
             disabled={isLast}
             tooltip="Next page"
             shortcut="Ctrl+PageDown"
-            aria-label="Next page"
           />
 
           <PillDivider />
 
-          <PillButton
-            icon={Plus}
-            onClick={onAddPage}
-            tooltip="Add page"
-            shortcut="Ctrl+Shift+N"
-            aria-label="Add page"
-          />
+          <PillButton icon={Plus} onClick={onAddPage} tooltip="Add page" shortcut="Ctrl+Shift+N" />
 
           <PillDivider />
 
