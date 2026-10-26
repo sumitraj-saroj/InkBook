@@ -6,9 +6,11 @@ import {
   type MouseEvent,
   type KeyboardEvent
 } from 'react'
+import { List, LayoutGrid, Plus, MoreHorizontal } from 'lucide-react'
 import { useNotebookStore } from '../store/notebookStore'
 import { PageContextMenu, type ContextMenuPosition } from './PageContextMenu'
 import { PageThumbnail } from './PageThumbnail'
+import { SegmentedControl } from './ui'
 
 export interface SidebarProps {
   onOpenPageSettings?: () => void
@@ -170,31 +172,20 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <span className="sidebar-title">Pages</span>
-        <div className="sidebar-view-toggle">
-          <button
-            type="button"
-            className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={(): void => handleSetViewMode('list')}
-            title="List view"
-            aria-label="List view"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className={`view-toggle-btn ${viewMode === 'thumbnail' ? 'active' : ''}`}
-            onClick={(): void => handleSetViewMode('thumbnail')}
-            title="Thumbnail view"
-            aria-label="Thumbnail view"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z" />
-            </svg>
-          </button>
-        </div>
+        <span className="sidebar-title">PAGES</span>
+        <SegmentedControl
+          value={viewMode}
+          onChange={handleSetViewMode}
+          options={[
+            { value: 'list', icon: List, title: 'List view', ariaLabel: 'List view' },
+            {
+              value: 'thumbnail',
+              icon: LayoutGrid,
+              title: 'Thumbnail view',
+              ariaLabel: 'Thumbnail view'
+            }
+          ]}
+        />
       </div>
 
       <div
@@ -293,7 +284,7 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
                         aria-label="Page options"
                         onClick={(e): void => handleOpenContextMenu(e, page.id, index)}
                       >
-                        •••
+                        <MoreHorizontal size={15} strokeWidth={1.75} aria-hidden="true" />
                       </button>
                     )}
                   </div>
@@ -301,9 +292,9 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
               ) : (
                 <>
                   <div className="page-item-main">
+                    <span className="page-number">{index + 1}</span>
                     <PageThumbnail page={page} className="sidebar-list-thumb" />
                     <div className="page-label">
-                      <span className="page-number">{index + 1}.</span>
                       {isRenaming ? (
                         <input
                           ref={renameInputRef}
@@ -334,7 +325,7 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
                       aria-label="Page options"
                       onClick={(e): void => handleOpenContextMenu(e, page.id, index)}
                     >
-                      •••
+                      <MoreHorizontal size={15} strokeWidth={1.75} aria-hidden="true" />
                     </button>
                   )}
                 </>
@@ -350,18 +341,17 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
           onClick={(): void => {
             addPage()
           }}
-          title="Add a new page"
+          title="Add page (Ctrl+Shift+N)"
         >
-          <span className="btn-add-icon">+</span>
+          <Plus size={16} strokeWidth={1.75} aria-hidden="true" />
           <span>Add page</span>
         </button>
       </div>
 
       <div className="sidebar-footer">
-        <span>
-          {pages.length} {pages.length === 1 ? 'Page' : 'Pages'}
+        <span className="sidebar-page-count">
+          {pages.length} {pages.length === 1 ? 'page' : 'pages'}
         </span>
-        <span>{viewMode === 'list' ? 'List' : 'Thumbnails'}</span>
       </div>
 
       {contextMenu && (
