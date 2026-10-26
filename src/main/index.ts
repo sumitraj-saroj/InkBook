@@ -62,8 +62,9 @@ function createWindow(): void {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    backgroundColor: '#121212',
+    backgroundColor: '#111114',
     show: false,
+    autoHideMenuBar: true,
     title: 'Untitled Notebook - InkBook',
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
