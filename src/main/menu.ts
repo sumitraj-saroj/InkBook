@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron'
+import { app, BrowserWindow, Menu, MenuItemConstructorOptions, shell, dialog } from 'electron'
 import { is } from '@electron-toolkit/utils'
 
 let currentRecentNotebooks: string[] = []
@@ -191,9 +191,33 @@ export function setupApplicationMenu(): void {
         { role: 'forceReload' as const },
         ...(is.dev ? [{ role: 'toggleDevTools' as const }] : []),
         { type: 'separator' },
-        { role: 'resetZoom' as const },
-        { role: 'zoomIn' as const },
-        { role: 'zoomOut' as const },
+        {
+          label: 'Fit Page to Window',
+          accelerator: 'CmdOrCtrl+0',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'fit-page')
+          }
+        },
+        {
+          label: 'Zoom In',
+          accelerator: 'CmdOrCtrl+=',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'zoom-in')
+          }
+        },
+        {
+          label: 'Zoom Out',
+          accelerator: 'CmdOrCtrl+-',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'zoom-out')
+          }
+        },
+        {
+          label: 'Reset Zoom (100%)',
+          click: (_item, win): void => {
+            sendMenuAction(win as BrowserWindow | undefined, 'reset-zoom')
+          }
+        },
         { type: 'separator' },
         { role: 'togglefullscreen' as const }
       ]
@@ -212,13 +236,25 @@ export function setupApplicationMenu(): void {
         {
           label: 'Documentation',
           click: (): void => {
-            // Placeholder for documentation
+            shell
+              .openExternal('https://github.com/sumitraj-saroj/InkBook#readme')
+              .catch(console.error)
           }
         },
         {
           label: 'About InkBook',
-          click: (): void => {
-            // Placeholder for about dialog
+          click: (_item, win): void => {
+            if (win) {
+              dialog
+                .showMessageBox(win as BrowserWindow, {
+                  type: 'info',
+                  title: 'About InkBook',
+                  message: 'InkBook v1.0.0',
+                  detail:
+                    'A fast, distraction-free Linux desktop digital notebook built on Excalidraw, Electron, and React.\n\nLicense: MIT\nCopyright (c) 2026 Sumitraj Saroj'
+                })
+                .catch(console.error)
+            }
           }
         }
       ]

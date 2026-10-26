@@ -78,6 +78,19 @@ export function SearchDialog({
     }
   }, [selectedIndex])
 
+  // Window-level escape key listener
+  useEffect(() => {
+    if (!isOpen) return
+    const handleWindowKeyDown = (e: globalThis.KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleWindowKeyDown)
+    return (): void => window.removeEventListener('keydown', handleWindowKeyDown)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
   const handleSelect = (result: SearchResult): void => {

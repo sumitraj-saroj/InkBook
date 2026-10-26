@@ -24,6 +24,9 @@ export default defineConfig({
         '@shared': resolve('src/shared')
       }
     },
+    define: {
+      __INKBOOK_DEV_HOOK__: JSON.stringify(process.env.INKBOOK_RELEASE !== 'true')
+    },
     plugins: [react()]
   }
 })

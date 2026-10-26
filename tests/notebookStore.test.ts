@@ -151,4 +151,35 @@ describe('Notebook Zustand Store', () => {
     expect(state.filePath).toBe('/custom/path/book.inkbook')
     expect(state.isDirty).toBe(false)
   })
+
+  it('allocates the next free page number and normalizes lone leftover default page titles', () => {
+    const store = useNotebookStore.getState()
+    // Initial page must be Page 1
+    expect(store.currentNotebook.pages[0]?.title).toBe('Page 1')
+
+    // Add Page 2 and Page 3
+    const p2 = store.addPage()
+    const p3 = store.addPage()
+    expect(p2.title).toBe('Page 2')
+    expect(p3.title).toBe('Page 3')
+
+    // Delete Page 2 -> remaining: Page 1, Page 3. Next free number should be 2.
+    store.deletePage(p2.id)
+    const newP2 = store.addPage()
+    expect(newP2.title).toBe('Page 2')
+
+    // Now delete Page 1 and newP2 -> only Page 3 remains.
+    // Lone default page should be normalized to Page 1 so there is never a leftover "Page 3" on a 1-page notebook.
+    const p1Id = store.currentNotebook.pages[0]!.id
+    store.deletePage(p1Id)
+    store.deletePage(newP2.id)
+
+    const remainingPages = useNotebookStore.getState().currentNotebook.pages
+    expect(remainingPages).toHaveLength(1)
+    expect(remainingPages[0]?.title).toBe('Page 1')
+
+    // Adding next page gives Page 2
+    const nextP = store.addPage()
+    expect(nextP.title).toBe('Page 2')
+  })
 })

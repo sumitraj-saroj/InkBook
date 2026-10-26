@@ -1,5 +1,5 @@
 import { getPageDimensions } from './constants'
-import type { PageOrientation, PageSize } from './types'
+import type { PageOrientation, PageSize, PageDimensions } from './types'
 
 export interface ElementBounds {
   minX: number
@@ -601,31 +601,88 @@ export function clampElementsToPage<T extends BoundedElement>(
   })
 }
 
+export interface Insets {
+  top?: number
+  bottom?: number
+  left?: number
+  right?: number
+}
+
+export interface CanvasDimensions {
+  width: number
+  height: number
+}
+
+export interface FitViewportResult {
+  zoom: number
+  scrollX: number
+  scrollY: number
+}
+
+/**
+ * Pure function to compute optimal zoom and scroll coordinates so the entire page
+ * is fully visible and centered within the usable area (accounting for toolbar and footer insets).
+ */
+export function computeFitViewport(
+  pageSize: PageDimensions,
+  canvasSize: CanvasDimensions,
+  insets: Insets = {},
+  padding: number = 20
+): FitViewportResult {
+  const topInset = Math.max(0, insets.top ?? 0)
+  const bottomInset = Math.max(0, insets.bottom ?? 0)
+  const leftInset = Math.max(0, insets.left ?? 0)
+  const rightInset = Math.max(0, insets.right ?? 0)
+  const pad = Math.max(0, padding)
+
+  // Usable area within the canvas
+  const usableWidth = Math.max(10, canvasSize.width - leftInset - rightInset - pad * 2)
+  const usableHeight = Math.max(10, canvasSize.height - topInset - bottomInset - pad * 2)
+
+  // Calculate zoom scale to fit entire page
+  const fitZoom = Math.min(usableWidth / pageSize.width, usableHeight / pageSize.height)
+  // Clamp zoom to sensible bounds (0.05 to 5.0)
+  const zoom = Math.max(0.05, Math.min(fitZoom, 5.0))
+
+  // The center of the usable viewport in canvas/screen coordinates
+  const centerScreenX = leftInset + pad + usableWidth / 2
+  const centerScreenY = topInset + pad + usableHeight / 2
+
+  // In Excalidraw: screenCoord = (sceneCoord + scroll) * zoom
+  // We want the center of the page (pageSize / 2) to align with centerScreen:
+  // centerScreenX = (pageSize.width / 2 + scrollX) * zoom
+  // => scrollX = centerScreenX / zoom - pageSize.width / 2
+  const scrollX = centerScreenX / zoom - pageSize.width / 2
+  const scrollY = centerScreenY / zoom - pageSize.height / 2
+
+  return { zoom, scrollX, scrollY }
+}
+
 /**
  * Calculates optimal scroll and zoom so the entire page fits in view and is centered.
+ * Delegates to computeFitViewport with default insets for backwards compatibility.
  */
 export function calculatePageFit({
   pageWidth,
   pageHeight,
   viewportWidth,
   viewportHeight,
-  padding = 40
+  padding = 40,
+  insets = {}
 }: {
   pageWidth: number
   pageHeight: number
   viewportWidth: number
   viewportHeight: number
   padding?: number
+  insets?: Insets
 }): { scrollX: number; scrollY: number; zoom: number } {
-  const availW = Math.max(50, viewportWidth - padding * 2)
-  const availH = Math.max(50, viewportHeight - padding * 2)
-  const fitZoom = Math.min(availW / pageWidth, availH / pageHeight)
-  const zoom = Math.max(0.1, Math.min(fitZoom, 3.0))
-
-  const scrollX = viewportWidth / (2 * zoom) - pageWidth / 2
-  const scrollY = viewportHeight / (2 * zoom) - pageHeight / 2
-
-  return { scrollX, scrollY, zoom }
+  return computeFitViewport(
+    { width: pageWidth, height: pageHeight },
+    { width: viewportWidth, height: viewportHeight },
+    insets,
+    padding
+  )
 }
 
 /**
@@ -640,8 +697,8 @@ export function clampViewport({
   viewportWidth,
   viewportHeight,
   margin = 80,
-  minZoom = 0.2,
-  maxZoom = 4.0
+  minZoom = 0.05,
+  maxZoom = 5.0
 }: {
   scrollX: number
   scrollY: number
@@ -657,19 +714,31 @@ export function clampViewport({
   const clampedZoom = Math.max(minZoom, Math.min(maxZoom, zoom))
   const zClamped = Math.abs(clampedZoom - zoom) > 0.001
 
-  const minScrollX = margin / clampedZoom - pageWidth
-  const maxScrollX = (viewportWidth - margin) / clampedZoom
-  const minScrollY = margin / clampedZoom - pageHeight
-  const maxScrollY = (viewportHeight - margin) / clampedZoom
+  // Ensure margin never exceeds one third of viewport dimension to avoid inverted bounds
+  const safeMarginX = Math.min(margin, viewportWidth / 3)
+  const safeMarginY = Math.min(margin, viewportHeight / 3)
+
+  const minScrollX = safeMarginX / clampedZoom - pageWidth
+  const maxScrollX = (viewportWidth - safeMarginX) / clampedZoom
+  const minScrollY = safeMarginY / clampedZoom - pageHeight
+  const maxScrollY = (viewportHeight - safeMarginY) / clampedZoom
 
   let clampedScrollX = scrollX
   let clampedScrollY = scrollY
 
-  if (scrollX < minScrollX) clampedScrollX = minScrollX
-  else if (scrollX > maxScrollX) clampedScrollX = maxScrollX
+  if (minScrollX <= maxScrollX) {
+    if (scrollX < minScrollX) clampedScrollX = minScrollX
+    else if (scrollX > maxScrollX) clampedScrollX = maxScrollX
+  } else {
+    clampedScrollX = (viewportWidth / clampedZoom - pageWidth) / 2
+  }
 
-  if (scrollY < minScrollY) clampedScrollY = minScrollY
-  else if (scrollY > maxScrollY) clampedScrollY = maxScrollY
+  if (minScrollY <= maxScrollY) {
+    if (scrollY < minScrollY) clampedScrollY = minScrollY
+    else if (scrollY > maxScrollY) clampedScrollY = maxScrollY
+  } else {
+    clampedScrollY = (viewportHeight / clampedZoom - pageHeight) / 2
+  }
 
   const sClamped =
     Math.abs(clampedScrollX - scrollX) > 0.5 || Math.abs(clampedScrollY - scrollY) > 0.5

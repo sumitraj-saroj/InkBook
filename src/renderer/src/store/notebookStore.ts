@@ -11,6 +11,21 @@ import {
   type PageSize
 } from '@shared/index'
 
+export function getNextFreePageNumber(pages: readonly Page[]): number {
+  const usedNumbers = new Set<number>()
+  for (const page of pages) {
+    const match = page.title.match(/^Page\s+(\d+)$/i)
+    if (match && match[1]) {
+      usedNumbers.add(parseInt(match[1], 10))
+    }
+  }
+  let n = 1
+  while (usedNumbers.has(n)) {
+    n++
+  }
+  return n
+}
+
 export function createDefaultPage(
   pageNumber: number,
   preset: PagePreset = 'A4',
@@ -142,7 +157,7 @@ export const useNotebookStore = create<NotebookState>((set, get) => ({
     background: PageBackground = 'ruled'
   ): Page => {
     const state = get()
-    const nextNumber = state.currentNotebook.pages.length + 1
+    const nextNumber = getNextFreePageNumber(state.currentNotebook.pages)
     const newPage = createDefaultPage(nextNumber, preset, orientation, background)
 
     set((s) => ({
@@ -203,7 +218,20 @@ export const useNotebookStore = create<NotebookState>((set, get) => ({
     const pageIndex = state.currentNotebook.pages.findIndex((p) => p.id === pageId)
     if (pageIndex === -1) return false
 
-    const updatedPages = state.currentNotebook.pages.filter((p) => p.id !== pageId)
+    let updatedPages = state.currentNotebook.pages.filter((p) => p.id !== pageId)
+    // If only 1 page remains and its title is a default "Page X", normalize to "Page 1"
+    if (
+      updatedPages.length === 1 &&
+      updatedPages[0] &&
+      /^Page\s+\d+$/i.test(updatedPages[0].title)
+    ) {
+      updatedPages = [
+        {
+          ...updatedPages[0],
+          title: 'Page 1'
+        }
+      ]
+    }
     let newCurrentPageId = state.currentPageId
 
     if (state.currentPageId === pageId) {
