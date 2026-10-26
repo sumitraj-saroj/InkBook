@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useState } from 'react'
 import { serializeAsJSON, CaptureUpdateAction } from '@excalidraw/excalidraw'
+import type { AppState } from '@excalidraw/excalidraw/types'
 import { ExcalidrawEditor } from './components/ExcalidrawEditor'
 import { NotebookTitle } from './components/NotebookTitle'
 import { Sidebar } from './components/Sidebar'
@@ -367,8 +368,57 @@ function Workspace(): React.JSX.Element {
           handleSaveAsNotebook()
           break
         case 'close-notebook':
-          handleNewNotebook()
+          if (isDirty) {
+            const confirmDiscard = window.confirm(
+              'You have unsaved changes. Close this notebook anyway?'
+            )
+            if (!confirmDiscard) break
+          }
+          newNotebook()
+          setIsWelcomeOpen(true)
           break
+        case 'fit-page':
+          fitPage()
+          break
+        case 'zoom-in': {
+          if (excalidrawAPI) {
+            const appState = excalidrawAPI.getAppState()
+            const currentZoom = appState.zoom?.value ?? 1
+            const nextZoom = Math.min(5.0, currentZoom * 1.2)
+            excalidrawAPI.updateScene({
+              appState: {
+                zoom: { value: nextZoom as unknown as NonNullable<AppState['zoom']>['value'] }
+              } as unknown as Parameters<typeof excalidrawAPI.updateScene>[0]['appState'],
+              captureUpdate: CaptureUpdateAction.NEVER
+            })
+          }
+          break
+        }
+        case 'zoom-out': {
+          if (excalidrawAPI) {
+            const appState = excalidrawAPI.getAppState()
+            const currentZoom = appState.zoom?.value ?? 1
+            const nextZoom = Math.max(0.1, currentZoom / 1.2)
+            excalidrawAPI.updateScene({
+              appState: {
+                zoom: { value: nextZoom as unknown as NonNullable<AppState['zoom']>['value'] }
+              } as unknown as Parameters<typeof excalidrawAPI.updateScene>[0]['appState'],
+              captureUpdate: CaptureUpdateAction.NEVER
+            })
+          }
+          break
+        }
+        case 'reset-zoom': {
+          if (excalidrawAPI) {
+            excalidrawAPI.updateScene({
+              appState: {
+                zoom: { value: 1 as unknown as NonNullable<AppState['zoom']>['value'] }
+              } as unknown as Parameters<typeof excalidrawAPI.updateScene>[0]['appState'],
+              captureUpdate: CaptureUpdateAction.NEVER
+            })
+          }
+          break
+        }
         case 'command-palette':
           setIsCommandPaletteOpen(true)
           break
@@ -391,7 +441,11 @@ function Workspace(): React.JSX.Element {
     handleSaveAsNotebook,
     handleImportAsNewPage,
     handleImportIntoCurrentPage,
-    handleImportLibrary
+    handleImportLibrary,
+    fitPage,
+    isDirty,
+    newNotebook,
+    excalidrawAPI
   ])
 
   // Window title and dirty state synchronization
