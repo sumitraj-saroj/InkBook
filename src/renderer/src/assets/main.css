@@ -273,6 +273,37 @@ body,
   height: 100%;
   position: relative;
   transition: width var(--transition-standard);
+  flex-shrink: 0;
+}
+
+.sidebar.is-resizing {
+  transition: none;
+}
+
+.sidebar.is-collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  overflow: hidden !important;
+  border-right: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 20;
+  transition: background-color var(--transition-fast);
+}
+
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle:active {
+  background-color: var(--color-accent);
 }
 
 .sidebar-header {

@@ -14,9 +14,18 @@ import { SegmentedControl } from './ui'
 
 export interface SidebarProps {
   onOpenPageSettings?: () => void
+  width?: number
+  isCollapsed?: boolean
+  onWidthChange?: (width: number) => void
+  onToggleCollapse?: () => void
 }
 
-export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element {
+export function Sidebar({
+  onOpenPageSettings,
+  width,
+  isCollapsed,
+  onWidthChange
+}: SidebarProps): React.JSX.Element {
   const pages = useNotebookStore((s) => s.currentNotebook.pages)
   const currentPageId = useNotebookStore((s) => s.currentPageId)
   const setCurrentPage = useNotebookStore((s) => s.setCurrentPage)
@@ -25,6 +34,22 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
   const renamePage = useNotebookStore((s) => s.renamePage)
   const duplicatePage = useNotebookStore((s) => s.duplicatePage)
   const reorderPages = useNotebookStore((s) => s.reorderPages)
+
+  const [localWidth, setLocalWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('inkbook-sidebar-width')
+      if (saved) {
+        const p = parseInt(saved, 10)
+        if (p >= 200 && p <= 360) return p
+      }
+    } catch {
+      // ignore
+    }
+    return 240
+  })
+
+  const activeWidth = width ?? localWidth
+  const activeCollapsed = Boolean(isCollapsed)
 
   const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null)
   const [renamingPageId, setRenamingPageId] = useState<string | null>(null)
@@ -41,7 +66,38 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
     }
     return 'list'
   })
+  const [isResizing, setIsResizing] = useState(false)
   const renameInputRef = useRef<HTMLInputElement>(null)
+
+  const handleStartResize = (e: MouseEvent<HTMLDivElement>): void => {
+    e.preventDefault()
+    setIsResizing(true)
+    const startX = e.clientX
+    const startWidth = activeWidth
+
+    const handleMouseMove = (moveEvent: globalThis.MouseEvent): void => {
+      const delta = moveEvent.clientX - startX
+      const nextWidth = Math.max(200, Math.min(360, startWidth + delta))
+      if (onWidthChange) {
+        onWidthChange(nextWidth)
+      } else {
+        setLocalWidth(nextWidth)
+      }
+    }
+
+    const handleMouseUp = (): void => {
+      setIsResizing(false)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
 
   useEffect(() => {
     window.api
@@ -170,7 +226,15 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
   }
 
   return (
-    <aside className="sidebar">
+    <aside
+      className={`sidebar ${activeCollapsed ? 'is-collapsed' : ''} ${isResizing ? 'is-resizing' : ''}`}
+      style={{
+        width: activeCollapsed ? 0 : activeWidth,
+        minWidth: activeCollapsed ? 0 : activeWidth,
+        maxWidth: activeCollapsed ? 0 : activeWidth
+      }}
+      aria-hidden={activeCollapsed}
+    >
       <div className="sidebar-header">
         <span className="sidebar-title">PAGES</span>
         <SegmentedControl
@@ -367,6 +431,15 @@ export function Sidebar({ onOpenPageSettings }: SidebarProps): React.JSX.Element
           onMoveUp={(idx): void => reorderPages(idx, idx - 1)}
           onMoveDown={(idx): void => reorderPages(idx, idx + 1)}
           onOpenPageSettings={(): void => onOpenPageSettings?.()}
+        />
+      )}
+
+      {!activeCollapsed && (
+        <div
+          className="sidebar-resize-handle"
+          onMouseDown={handleStartResize}
+          title="Drag to resize sidebar (200px - 360px)"
+          aria-label="Resize sidebar"
         />
       )}
     </aside>
