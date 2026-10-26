@@ -24,7 +24,7 @@ import { PageBackground } from './PageBackground'
 
 export function ExcalidrawEditor(): React.JSX.Element {
   const { theme, paperColorInDarkMode } = useTheme()
-  const { excalidrawAPI, setExcalidrawAPI, registerFitHandler, isAutoFit, setIsAutoFit } =
+  const { excalidrawAPI, setExcalidrawAPI, registerFitHandler, isAutoFit, setIsAutoFit, setZoom } =
     useEditor()
   const currentNotebook = useNotebookStore((s) => s.currentNotebook)
   const currentPageId = useNotebookStore((s) => s.currentPageId)
@@ -142,7 +142,8 @@ export function ExcalidrawEditor(): React.JSX.Element {
       scrollY: fit.scrollY,
       zoom: fit.zoom
     })
-  }, [excalidrawAPI])
+    setZoom(fit.zoom)
+  }, [excalidrawAPI, setZoom])
 
   // Register fit handler with EditorContext so topbar, footer, shortcuts, and commands use it
   useEffect(() => {
@@ -282,6 +283,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
           prev.scrollY !== finalAppState.scrollY ||
           prev.zoom !== currentZoom
         ) {
+          setZoom(currentZoom)
           return {
             scrollX: finalAppState.scrollX,
             scrollY: finalAppState.scrollY,
@@ -304,7 +306,7 @@ export function ExcalidrawEditor(): React.JSX.Element {
         debounceTimerRef.current = null
       }, 300)
     },
-    [excalidrawAPI, updatePageScene, viewport, setIsAutoFit]
+    [excalidrawAPI, updatePageScene, viewport, setIsAutoFit, setZoom]
   )
 
   // Clear debounce timer on unmount
@@ -408,13 +410,14 @@ export function ExcalidrawEditor(): React.JSX.Element {
           scrollY,
           zoom: zoomVal
         })
+        setZoom(zoomVal)
       }
 
       isSwitchingRef.current = false
     }
 
     activePageIdRef.current = currentPageId
-  }, [currentNotebook.id, currentPageId, excalidrawAPI, updatePageScene])
+  }, [currentNotebook.id, currentPageId, excalidrawAPI, updatePageScene, setZoom])
 
   // Dev-only debug hook for Playwright / E2E test harness (stripped in production builds)
   useEffect(() => {

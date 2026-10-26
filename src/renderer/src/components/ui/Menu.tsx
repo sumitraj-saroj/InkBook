@@ -27,6 +27,7 @@ export interface MenuProps {
   }) => ReactNode
   items: MenuItemType[]
   align?: 'left' | 'right'
+  placement?: 'bottom' | 'top'
   className?: string
   width?: number | string
 }
@@ -35,6 +36,7 @@ export function Menu({
   trigger,
   items,
   align = 'right',
+  placement = 'bottom',
   className = '',
   width = 220
 }: MenuProps): React.JSX.Element {
@@ -132,7 +134,7 @@ export function Menu({
           ref={menuRef}
           role="menu"
           aria-orientation="vertical"
-          className={`ui-menu-dropdown ui-menu-dropdown--${align}`}
+          className={`ui-menu-dropdown ui-menu-dropdown--${align} ui-menu-dropdown--${placement}`}
           style={{ width }}
         >
           {items.map((item, idx) => {

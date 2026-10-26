@@ -1628,109 +1628,97 @@ body,
 }
 
 /* ==========================================================================
-   Page Navigation Footer
+   Page Navigation and Canvas Footer
    ========================================================================== */
 
 .page-footer {
   position: absolute;
   bottom: 18px;
+  left: 18px;
+  right: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.page-footer-left {
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.page-footer-center {
+  position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 20;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
-  user-select: none;
-  backdrop-filter: blur(8px);
+  pointer-events: auto;
 }
 
-.page-footer-nav {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.footer-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.footer-btn:hover:not(:disabled) {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.footer-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
+.page-footer-pill {
+  box-shadow: var(--shadow-pill);
 }
 
 .footer-page-indicator {
+  font-family: var(--font-ui);
   font-size: 12px;
-  color: var(--text-secondary);
-  padding: 0 4px;
+  color: var(--color-text-muted);
+  padding: 0 var(--space-2);
   white-space: nowrap;
 }
 
 .footer-page-indicator strong {
-  color: var(--text-primary);
+  color: var(--color-text);
+  font-weight: 600;
 }
 
-.footer-separator {
-  width: 1px;
-  height: 16px;
-  background-color: var(--border-color);
-}
-
-.footer-badge-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
+.footer-zoom-btn {
+  font-family: var(--font-ui);
   font-size: 11px;
   font-weight: 600;
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
+  min-width: 42px;
+  justify-content: center;
 }
 
-.footer-badge-btn:hover {
-  border-color: var(--accent);
-  color: var(--text-primary);
+.footer-bg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.footer-size-chip {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-workspace);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.footer-size-chip:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
 }
 
 .footer-fit-btn {
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 500;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
+  font-weight: 600;
+  font-size: 12px;
 }
 
-.footer-fit-btn:hover {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
-  border-color: var(--border-color);
+/* Hide Excalidraw's duplicate chrome in bottom footer */
+.excalidraw .layer-ui__wrapper__footer-left {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  visibility: hidden !important;
+}
+
+.excalidraw .footer-center {
+  display: none !important;
 }
