@@ -46,8 +46,8 @@ function PageOverlayComponent({
           height: `${height}px`,
           pointerEvents: 'none',
           boxShadow: isDark
-            ? '0 0 0 9999px rgba(0, 0, 0, 0.55), 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.14)'
-            : '0 0 0 9999px rgba(0, 0, 0, 0.22), 0 8px 30px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.12)',
+            ? '0 0 0 9999px rgba(0, 0, 0, 0.40), 0 20px 60px -10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.10)'
+            : '0 0 0 9999px rgba(0, 0, 0, 0.12), 0 20px 60px -10px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(0, 0, 0, 0.08)',
           borderRadius: '2px',
           transition: 'none'
         }}
