@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState } from 'react'
-import { serializeAsJSON, restore, CaptureUpdateAction } from '@excalidraw/excalidraw'
+import { serializeAsJSON, CaptureUpdateAction } from '@excalidraw/excalidraw'
 import { ExcalidrawEditor } from './components/ExcalidrawEditor'
 import { NotebookTitle } from './components/NotebookTitle'
 import { Sidebar } from './components/Sidebar'
@@ -232,6 +232,7 @@ function Workspace(): React.JSX.Element {
           >[0]['elements'],
           captureUpdate: CaptureUpdateAction.IMMEDIATELY
         })
+        fitPage()
       }
     } catch (err) {
       console.error('Failed to import into current page:', err)
@@ -239,7 +240,7 @@ function Workspace(): React.JSX.Element {
         `Failed to import into current page: ${err instanceof Error ? err.message : String(err)}`
       )
     }
-  }, [currentNotebook.pages, currentPageId, excalidrawAPI])
+  }, [currentNotebook.pages, currentPageId, excalidrawAPI, fitPage])
 
   const handleImportLibrary = useCallback(async (): Promise<void> => {
     if (!excalidrawAPI) return
@@ -411,27 +412,6 @@ function Workspace(): React.JSX.Element {
     }
   }, [handleSaveNotebook])
 
-  const handleOpen = async (): Promise<void> => {
-    if (!excalidrawAPI) return
-    const result = await window.api.openExcalidrawFile()
-    if (result.canceled || !result.content) return
-
-    try {
-      const data = JSON.parse(result.content) as Parameters<typeof restore>[0]
-      const restored = restore(data, null, null)
-      if (restored.files) {
-        excalidrawAPI.addFiles(Object.values(restored.files))
-      }
-      excalidrawAPI.updateScene({
-        elements: restored.elements,
-        appState: restored.appState
-      })
-      excalidrawAPI.scrollToContent(restored.elements, { fitToViewport: true })
-    } catch (err) {
-      console.error('Failed to parse or restore .excalidraw file:', err)
-    }
-  }
-
   const handleSave = async (): Promise<void> => {
     if (!excalidrawAPI) return
     const elements = excalidrawAPI.getSceneElements()
@@ -481,8 +461,8 @@ function Workspace(): React.JSX.Element {
           </button>
           <button
             className="action-btn"
-            onClick={handleOpen}
-            title="Open an Excalidraw drawing file"
+            onClick={handleImportIntoCurrentPage}
+            title="Import an Excalidraw drawing into the current page"
           >
             Open .excalidraw
           </button>
